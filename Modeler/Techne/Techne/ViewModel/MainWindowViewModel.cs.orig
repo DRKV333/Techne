@@ -1,0 +1,2692 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.Composition;
+using System.ComponentModel.Composition.Hosting;
+using System.Deployment.Application;
+using System.IO;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Media3D;
+using System.Windows.Threading;
+using Cinch;
+using HelixToolkit;
+using IronPython.Hosting;
+using IronPython.Runtime;
+using MEFedMVVM.Common;
+using MEFedMVVM.ViewModelLocator;
+using Microsoft.Scripting;
+using Microsoft.Scripting.Hosting;
+using Techne.Model;
+using Techne.Plugins.Attributes;
+using Techne.Plugins.Interfaces;
+using Techne.Plugins.ValueConverter;
+using Techne.ViewModel;
+using Techne.Manager;
+
+namespace Techne
+{
+    [ExportViewModel("MainWindowViewModel")]
+    [PartCreationPolicy(CreationPolicy.NonShared)]
+    public class MainWindowViewModel : ViewModelBase
+    {
+        #region Plugins
+        [ImportMany(typeof(IShapePlugin), AllowRecomposition = true)]
+        public IEnumerable<IShapePlugin> ShapePlugins { get; set; }
+        [ImportMany(typeof(IExportPlugin), AllowRecomposition = true)]
+        public IEnumerable<IExportPlugin> ExportPlugins { get; set; }
+        [ImportMany(typeof(IImportPlugin), AllowRecomposition = true)]
+        public IEnumerable<IImportPlugin> ImportPlugins { get; set; }
+        [ImportMany(typeof(IToolPlugin), AllowRecomposition = true)]
+        public IEnumerable<IToolPlugin> ToolPlugins { get; set; }
+        #endregion
+
+        #region Fields
+        #region Manager
+        private Techne.Views.PythonConsoleView pythonConsoleView;
+        public ExtensionManager extensionManager;
+        public SettingsManager settingsManager;
+        public UpdateManager updateManager;
+        public HistoryManager historyManager;
+        public BackupManager backupManager;
+        private HitTestManager hitTestManager;
+        #endregion
+        #region Services
+        public IOpenFileService openFileService;
+        public ISaveFileService saveFileService;
+        private IUIVisualizerService visualizerService;
+        private IViewAwareStatus viewAwareStatusService;
+        #endregion
+        #region Visuals
+        private BoundingBoxVisual3D boxWireframe = new BoundingBoxVisual3D();
+        private SphereVisual3D offsetSphere;
+        private TextureViewerViewModel textureViewModel = new TextureViewerViewModel();
+        private GridLinesVisual3D gridLines;
+        private ModelVisual3D ground;
+        private ITechneVisual copiedModel;
+        private ITechneVisual selectedModel;
+        private ModelVisual3D models = new ModelVisual3D();
+        private HelixView3D helixView;
+        private bool visualSelected;
+        #endregion
+        //stuff that stays
+        private PythonConsoleViewModel pythonConsole;
+        private SaveModel saveModel = new SaveModel();
+        private FileSystemWatcher watcher;
+        private bool showcaseActive;
+        //not decided
+        private string message;
+        public static bool IsDeployed;
+        private MemoryStream textureStream;
+        #endregion
+
+        #region ProtperyChangedEventArgs
+        //static PropertyChangedEventArgs modelChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.Model);
+        static PropertyChangedEventArgs selectedVisualChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.SelectedVisual);
+        static PropertyChangedEventArgs selectedIndexChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.SelectedIndex);
+
+        static PropertyChangedEventArgs widthChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.Width);
+        static PropertyChangedEventArgs heightChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.Height);
+        static PropertyChangedEventArgs lengthChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.Length);
+
+        static PropertyChangedEventArgs positionXChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.PositionX);
+        static PropertyChangedEventArgs positionYChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.PositionY);
+        static PropertyChangedEventArgs positionZChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.PositionZ);
+
+        static PropertyChangedEventArgs offsetXChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.OffsetX);
+        static PropertyChangedEventArgs offsetYChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.OffsetY);
+        static PropertyChangedEventArgs offsetZChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.OffsetZ);
+
+        static PropertyChangedEventArgs textureOffsetChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.SelectedVisual.TextureOffset);
+        static PropertyChangedEventArgs textureOffsetXChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.TextureOffsetX);
+        static PropertyChangedEventArgs textureOffsetYChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.TextureOffsetY);
+
+        static PropertyChangedEventArgs elementNameChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.ElementName);
+
+        static PropertyChangedEventArgs textureViewerChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.TextureViewModel);
+        static PropertyChangedEventArgs textureChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.Texture);
+        static PropertyChangedEventArgs textureOverlayChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.TextureViewerOverlay);
+
+        static PropertyChangedEventArgs rotationXChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.RotationX);
+        static PropertyChangedEventArgs rotationYChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.RotationY);
+        static PropertyChangedEventArgs rotationZChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.RotationZ);
+        static PropertyChangedEventArgs isMirroredChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.IsMirrored);
+
+        static PropertyChangedEventArgs alternativeRotationXChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.AlternativeRotationX);
+        static PropertyChangedEventArgs alternativeRotationYChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.AlternativeRotationY);
+        static PropertyChangedEventArgs alternativeRotationZChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.AlternativeRotationZ);
+
+        static PropertyChangedEventArgs visualSelectedChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.VisualSelected);
+
+        static PropertyChangedEventArgs hasChangedChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.HasChanged);
+
+        static PropertyChangedEventArgs techneModelChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.TechneModel);
+
+        static PropertyChangedEventArgs exportPluginMenuItemsChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.ExportPluginMenuItems);
+        static PropertyChangedEventArgs helixViewChangeArgs = ObservableHelper.CreateArgs<MainWindowViewModel>(x => x.HelixView);
+        #endregion
+
+        #region Public Properties
+
+        public TreeView ModelTreeTreeView
+        {
+            get;
+            set;
+        }
+
+        public String Message
+        {
+            get
+            {
+                return message;
+            }
+            set
+            {
+                message = value;
+                NotifyPropertyChanged("Message");
+            }
+        }
+
+        public String PluginPath
+        {
+            get
+            {
+                return extensionManager.PluginPath;
+            }
+        }
+
+        #region MenuItems
+        public DispatcherNotifiedObservableCollection<ShapeToolItemViewModel> ShapeToolBarItems
+        {
+            get
+            {
+                return extensionManager.ShapeToolBarItems;
+            }
+        }
+        public DispatcherNotifiedObservableCollection<ToolToolItemViewModel> ToolToolBarItems
+        {
+            get
+            {
+                return extensionManager.ToolToolBarItems;
+            }
+        }
+        public DispatcherNotifiedObservableCollection<ImportPluginMenuItemViewModel> ImportPluginMenuItems
+        {
+            get
+            {
+                return extensionManager.ImportPluginMenuItems;
+            }
+        }
+        public DispatcherNotifiedObservableCollection<ExportPluginMenuItemViewModel> ExportPluginMenuItems
+        {
+            get
+            {
+                return extensionManager.ExportPluginMenuItems;
+            }
+        }
+        #endregion
+        #region Model
+        public DispatcherNotifiedObservableCollection<Visual3D> Model
+        {
+            get;
+            private set;
+        }
+        public DispatcherNotifiedObservableCollection<ITechneVisual> TechneModel
+        {
+            get;
+            private set;
+        }
+        #endregion
+
+        public bool VisualSelected
+        {
+            get
+            {
+                return visualSelected;
+            }
+            set
+            {
+                visualSelected = value;
+                NotifyPropertyChanged(visualSelectedChangeArgs);
+            }
+        }
+
+        public ITechneVisual SelectedVisual
+        {
+            get
+            {
+                return selectedModel;
+            }
+            set
+            {
+                if (value != selectedModel)
+                {
+
+                    if (!historyManager.RecordAction)
+                    {
+                        if (!((selectedModel is TechneVisualCollection) && value == null))
+                        {
+                            PropertyChanged(selectedModel, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.SelectedVisual)));
+                        }
+                    }
+
+                    //if (SelectedVisual is TechneVisualCollection)
+                    //{
+                    //    DeselectVisual();
+                    //}
+
+                    if (value == null)
+                        DeselectVisual();
+
+                    selectedModel = value;
+                    //VisualSelected = !VisualSelected;
+
+                    if (selectedModel != null)
+                    {
+                        SelectVisual();
+                        VisualSelected = true;
+                    }
+                    else
+                    {
+                        VisualSelected = false;
+                        //gets updated in SelectVisual, so no need to have it for that case
+                        UpdateTextureOverlay();
+                    }
+
+                    ModelTreeTreeView.SetSelectedItem(SelectedVisual);
+
+
+                    //NotifyPropertyChanged(visualSelectedChangeArgs);
+                    NotifyPropertyChanged(selectedVisualChangeArgs);
+                    NotifyPropertyChanged(widthChangeArgs);
+                    NotifyPropertyChanged(heightChangeArgs);
+                    NotifyPropertyChanged(lengthChangeArgs);
+
+                    NotifyPropertyChanged(positionXChangeArgs);
+                    NotifyPropertyChanged(positionYChangeArgs);
+                    NotifyPropertyChanged(positionZChangeArgs);
+
+                    NotifyPropertyChanged(offsetXChangeArgs);
+                    NotifyPropertyChanged(offsetYChangeArgs);
+                    NotifyPropertyChanged(offsetZChangeArgs);
+
+                    NotifyPropertyChanged(textureOffsetXChangeArgs);
+                    NotifyPropertyChanged(textureOffsetYChangeArgs);
+
+                    NotifyPropertyChanged(elementNameChangeArgs);
+
+                    NotifyPropertyChanged(textureViewerChangeArgs);
+                    NotifyPropertyChanged(textureChangeArgs);
+                    NotifyPropertyChanged(textureOverlayChangeArgs);
+
+                    NotifyPropertyChanged(rotationXChangeArgs);
+                    NotifyPropertyChanged(rotationYChangeArgs);
+                    NotifyPropertyChanged(rotationZChangeArgs);
+                    NotifyPropertyChanged(selectedIndexChangeArgs);
+                    NotifyPropertyChanged(isMirroredChangeArgs);
+                }
+            }
+        }
+        #region SelectedVisual
+        public Double Width
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Width : 0;
+            }
+            set
+            {
+                if (value <= 0)
+                    return;
+
+                PropertyChanged(Width, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.Width)));
+                SelectedVisual.Width = value;
+                NotifyPropertyChanged(widthChangeArgs);
+                NotifyPropertyChanged(heightChangeArgs);
+                NotifyPropertyChanged(lengthChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Double Height
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Height : 0;
+            }
+            set
+            {
+                if (value <= 0)
+                    return;
+
+                PropertyChanged(Height, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.Height)));
+                SelectedVisual.Height = value;
+                NotifyPropertyChanged(widthChangeArgs);
+                NotifyPropertyChanged(heightChangeArgs);
+                NotifyPropertyChanged(lengthChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Boolean IsMirrored
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.IsMirrored : false;
+            }
+            set
+            {
+                if (SelectedVisual != null)
+                {
+                    SelectedVisual.IsMirrored = value;
+                }
+            }
+        }
+
+        public Double Length
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Length : 0;
+            }
+            set
+            {
+                if (value <= 0)
+                    return;
+
+                PropertyChanged(Length, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.Length)));
+
+                SelectedVisual.Length = value;
+                NotifyPropertyChanged(widthChangeArgs);
+                NotifyPropertyChanged(heightChangeArgs);
+                NotifyPropertyChanged(lengthChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Double OffsetX
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Offset.X : 0;
+            }
+            set
+            {
+                PropertyChanged(OffsetX, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.OffsetX)));
+
+                SelectedVisual.Offset = new Vector3D(value, SelectedVisual.Offset.Y, SelectedVisual.Offset.Z);
+                NotifyPropertyChanged(offsetXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (settingsManager.TechneSettings.FollowSelectedShape)
+                    FocusSelectedVisual();
+            }
+        }
+
+        public Double OffsetY
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Offset.Y : 0;
+            }
+            set
+            {
+                PropertyChanged(OffsetY, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.OffsetY)));
+
+                SelectedVisual.Offset = new Vector3D(SelectedVisual.Offset.X, value, SelectedVisual.Offset.Z);
+                NotifyPropertyChanged(offsetYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (settingsManager.TechneSettings.FollowSelectedShape)
+                    FocusSelectedVisual();
+            }
+        }
+        public Double OffsetZ
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Offset.Z : 0;
+            }
+            set
+            {
+                PropertyChanged(OffsetZ, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.OffsetZ)));
+
+                SelectedVisual.Offset = new Vector3D(SelectedVisual.Offset.X, SelectedVisual.Offset.Y, value);
+                NotifyPropertyChanged(offsetZChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (settingsManager.TechneSettings.FollowSelectedShape)
+                    FocusSelectedVisual();
+            }
+        }
+
+        public Double PositionX
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Position.X : 0;
+            }
+            set
+            {
+                if (!historyManager.RecordAction)
+                    PropertyChanged(PositionX, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.PositionX)));
+
+                SelectedVisual.Position = new Vector3D(value, SelectedVisual.Position.Y, SelectedVisual.Position.Z);
+                NotifyPropertyChanged(positionXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (settingsManager.TechneSettings.FollowSelectedShape)
+                    FocusSelectedVisual();
+            }
+        }
+        public Double PositionY
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Position.Y : 0;
+            }
+            set
+            {
+                PropertyChanged(PositionY, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.PositionY)));
+
+                SelectedVisual.Position = new Vector3D(SelectedVisual.Position.X, value, SelectedVisual.Position.Z);
+                NotifyPropertyChanged(positionYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (settingsManager.TechneSettings.FollowSelectedShape)
+                    FocusSelectedVisual();
+            }
+        }
+        public Double PositionZ
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Position.Z : 0;
+            }
+            set
+            {
+                PropertyChanged(PositionZ, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.PositionZ)));
+
+                SelectedVisual.Position = new Vector3D(SelectedVisual.Position.X, SelectedVisual.Position.Y, value);
+                NotifyPropertyChanged(positionZChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (settingsManager.TechneSettings.FollowSelectedShape)
+                    FocusSelectedVisual();
+            }
+        }
+
+        public Double TextureOffsetX
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.TextureOffset.X : 0;
+            }
+            set
+            {
+                PropertyChanged(TextureOffsetX, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.TextureOffsetX)));
+
+                SelectedVisual.TextureOffset = new Vector(value, SelectedVisual.TextureOffset.Y);
+                NotifyPropertyChanged(textureOffsetXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        public Double TextureOffsetY
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.TextureOffset.Y : 0;
+            }
+            set
+            {
+                PropertyChanged(TextureOffsetY, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.TextureOffsetY)));
+
+                SelectedVisual.TextureOffset = new Vector(SelectedVisual.TextureOffset.X, value);
+                NotifyPropertyChanged(textureOffsetYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public String ElementName
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Name : "";
+            }
+            set
+            {
+                if (SelectedVisual == null)
+                    return;
+
+                PropertyChanged(ElementName, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.ElementName)));
+
+                SelectedVisual.Name = value;
+                NotifyPropertyChanged(elementNameChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Double RotationX
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+
+                var rotation = SelectedVisual.RotationX;
+                if (settingsManager.TechneSettings.UseRadians)
+                    rotation *= Math.PI / 180;
+
+                return rotation;
+            }
+            set
+            {
+                if (SelectedVisual == null)
+                    return;
+
+                PropertyChanged(RotationX, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.RotationX)));
+
+                var rotation = value;
+                if (settingsManager.TechneSettings.UseRadians)
+                    rotation *= 180 / Math.PI;
+
+                SelectedVisual.RotationX = rotation;
+                NotifyPropertyChanged(rotationXChangeArgs);
+                NotifyPropertyChanged(alternativeRotationXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        public Double RotationY
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+
+                var rotation = SelectedVisual.RotationY;
+                if (settingsManager.TechneSettings.UseRadians)
+                    rotation *= Math.PI / 180;
+
+                return rotation;
+            }
+            set
+            {
+                if (SelectedVisual == null)
+                    return;
+
+                PropertyChanged(RotationY, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.RotationY)));
+
+                var rotation = value;
+                if (settingsManager.TechneSettings.UseRadians)
+                    rotation *= 180 / Math.PI;
+
+                SelectedVisual.RotationY = rotation;
+                NotifyPropertyChanged(rotationYChangeArgs);
+                NotifyPropertyChanged(alternativeRotationYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        public Double RotationZ
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+
+                var rotation = SelectedVisual.RotationZ;
+                if (settingsManager.TechneSettings.UseRadians)
+                    rotation *= Math.PI / 180;
+
+                return rotation;
+            }
+            set
+            {
+                if (SelectedVisual == null)
+                    return;
+
+                PropertyChanged(RotationZ, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.RotationZ)));
+
+                var rotation = value;
+                if (settingsManager.TechneSettings.UseRadians)
+                    rotation *= 180 / Math.PI;
+
+                SelectedVisual.RotationZ = rotation;
+                NotifyPropertyChanged(rotationZChangeArgs);
+                NotifyPropertyChanged(alternativeRotationZChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Double AlternativeRotationX
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+
+                var rotation = SelectedVisual.RotationX;
+                if (!settingsManager.TechneSettings.UseRadians)
+                    rotation *= Math.PI / 180;
+
+                return rotation;
+            }
+        }
+        public Double AlternativeRotationY
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+
+                var rotation = SelectedVisual.RotationY;
+                if (!settingsManager.TechneSettings.UseRadians)
+                    rotation *= Math.PI / 180;
+
+                return rotation;
+            }
+        }
+        public Double AlternativeRotationZ
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+
+                var rotation = SelectedVisual.RotationZ;
+                if (!settingsManager.TechneSettings.UseRadians)
+                    rotation *= Math.PI / 180;
+
+                return rotation;
+            }
+        }
+        #endregion
+
+        public PythonConsoleViewModel PythonConsole
+        {
+            get
+            {
+                return pythonConsole;
+            }
+            set
+            {
+                pythonConsole = value;
+                NotifyPropertyChanged("PythonConsole");
+                NotifyPropertyChanged("PythonHeight");
+            }
+        }
+        public int SelectedIndex
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return -1;
+
+                return TechneModel.IndexOf(SelectedVisual);
+            }
+            set
+            {
+                if (TechneModel.Count == 0)
+                    return;
+
+                if (value >= TechneModel.Count)
+                    value = 0;
+                else if (value < 0)
+                    value = TechneModel.Count - 1;
+
+                ChangeOpacity(1);
+                SelectedVisual = TechneModel[value];
+            }
+        }
+
+        public Boolean HasChanged
+        {
+            get
+            {
+                if (saveModel == null)
+                    return false;
+
+                return saveModel.HasChanged;
+            }
+            set
+            {
+            }
+        }
+        public int PythonHeight
+        {
+            get
+            {
+                return PythonConsole == null ? 0 : 150;
+            }
+        }
+
+        public FrameworkElement TextureViewerOverlay
+        {
+            get
+            {
+                return TextureViewModel.Overlay;
+            }
+            set
+            {
+                TextureViewModel.Overlay = value;
+                NotifyPropertyChanged(textureOverlayChangeArgs);
+                NotifyPropertyChanged(textureViewerChangeArgs);
+            }
+        }
+        public FrameworkElement HelixView
+        {
+            get
+            {
+                return helixView;
+            }
+            set
+            {
+                helixView = value as HelixView3D;
+                NotifyPropertyChanged(helixViewChangeArgs);
+            }
+        }
+        public TextureViewerViewModel TextureViewModel
+        {
+            get
+            {
+                return textureViewModel;
+            }
+            set
+            {
+                textureViewModel = value;
+                NotifyPropertyChanged(textureViewerChangeArgs);
+            }
+        }
+        public System.Windows.Media.Imaging.BitmapSource Texture
+        {
+            get
+            {
+                return TextureViewModel.Texture;
+            }
+            set
+            {
+                PropertyChanged(Texture, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.Texture)));
+
+                TextureViewModel.Texture = value;
+
+                if (value != null)
+                    TextureViewModel.TextureSize = new System.Windows.Vector(value.PixelWidth, value.PixelHeight);
+                else
+                    TextureViewModel.TextureSize = new System.Windows.Vector(64, 32);
+
+                //int i = 0;
+                //while (Model.Count > i)
+                //{
+                //    var item = Model[i];
+
+                //    var techneVisual = item as ITechneVisual;
+
+                //    if (techneVisual == null)
+                //    {
+                //        i++;
+                //        continue;
+                //    }
+
+                //    Model.RemoveAt(i);
+
+                //    techneVisual.Texture = value;
+
+                //    Model.Add((Visual3D)techneVisual);
+                //    i++;
+                //}
+
+                foreach (var item in Model)
+                {
+                    var techneVisual = item as ITechneVisual;
+
+                    if (techneVisual == null)
+                        continue;
+
+                    (techneVisual as Visual3D).Dispatcher.InvokeIfRequired(() =>
+                    {
+                        techneVisual.Texture = value;
+                    });
+                }
+
+                NotifyPropertyChanged(textureChangeArgs);
+                NotifyPropertyChanged(textureViewerChangeArgs);
+            }
+        }
+
+        #endregion
+
+        #region Commands
+        public SimpleCommand<Object, Object> MouseDownCommand { get; private set; }
+        public SimpleCommand<Object, Object> OpenCommand { get; private set; }
+        public SimpleCommand<Object, Object> SaveCommand { get; private set; }
+        public SimpleCommand<Object, Object> ClearCommand { get; private set; }
+        public SimpleCommand<Object, Object> SaveAsCommand { get; private set; }
+        public SimpleCommand<Object, Object> LoadTextureCommand { get; private set; }
+        public SimpleCommand<Object, Object> KeyUpCommand { get; private set; }
+        public SimpleCommand<Object, Object> OpenExtensionGalleryCommand { get; private set; }
+        public SimpleCommand<Object, Object> ChangeSelectedVisualCommand { get; private set; }
+        public SimpleCommand<Object, Object> ResetValueCommand { get; private set; }
+        public SimpleCommand<Object, Object> QuitCommand { get; private set; }
+        public SimpleCommand<Object, Object> ChangeGroupingCommand { get; private set; }
+        public SimpleCommand<Object, Object> OpenAboutWindowCommand { get; private set; }
+        public SimpleCommand<Object, Object> AnimateCommand { get; private set; }
+        public SimpleCommand<Object, Object> SelectedElementChangedCommand { get; private set; }
+        public SimpleCommand<Object, Object> NewModelCommand { get; private set; }
+        public SimpleCommand<Object, Object> OpenSettingsCommand { get; private set; }
+        public SimpleCommand<Object, Object> ToggleShowcaseCommand { get; private set; }
+        public SimpleCommand<Object, Object> OpenConsoleCommand { get; private set; }
+        public SimpleCommand<Object, Object> SendFeedbackCommand { get; private set; }
+        public SimpleCommand<Object, Object> OpenBackupFolderCommand { get; private set; }
+        public SimpleCommand<Object, Object> MouseMoveCommand { get; private set; }
+        public SimpleCommand<Object, Object> MouseButtonUpCommand { get; private set; }
+        #endregion
+
+        #region Constructor
+        [ImportingConstructor]
+        public MainWindowViewModel(IViewAwareStatus viewAwareStatusService, IOpenFileService openFileService, ISaveFileService saveFileService, IUIVisualizerService visualizerService)
+        {
+            CheckDeployment();
+            InitializeExtensionManager();
+
+            AsignServices(viewAwareStatusService, openFileService, saveFileService, visualizerService);
+
+            saveModel = new Techne.SaveModel();
+
+            Model = new DispatcherNotifiedObservableCollection<Visual3D>();
+            TechneModel = new DispatcherNotifiedObservableCollection<ITechneVisual>(saveModel.Geometry);
+            
+
+            
+            settingsManager = new SettingsManager(this);
+            updateManager = new UpdateManager(this);
+            historyManager = new HistoryManager(this);
+
+            //Linking commands
+            InitializeCommands();
+
+            watcher = new FileSystemWatcher();
+            watcher.Changed += new FileSystemEventHandler(LoadedTextureChanged);
+            updateManager.NewVersionAvailableEvent += new EventHandler(updateManager_NewVersionAvailableEvent);
+
+            ConfigureHelixView();
+            ConfigureTreeView();
+        }
+
+        private void ConfigureTreeView()
+        {
+            ModelTreeTreeView = new TreeView()
+            {
+                Name = "modelTree",
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(0)
+            };
+
+            ModelTreeTreeView.ItemTemplateSelector = new Techne.ValueConverters.ITechneVisualDataSelector();
+            ModelTreeTreeView.ItemsSource = TechneModel;
+            ModelTreeTreeView.SelectedItemChanged += new RoutedPropertyChangedEventHandler<object>(ModelTreeTreeView_SelectedItemChanged);
+        }
+
+        void ModelTreeTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (Dispatcher.CurrentDispatcher.CheckAccess())
+            {
+                var visual = e.NewValue as ITechneVisual;
+                if (SelectedVisual != visual)
+                {
+                    SelectedVisual = visual;
+                }
+            }
+            else
+            {
+                Dispatcher.CurrentDispatcher.Invoke(new Action(delegate() { ModelTreeTreeView_SelectedItemChanged(sender, e); }));
+            }
+        }
+
+        private void CheckDeployment()
+        {
+            //IsDeployed = true;
+            try
+            {
+                if (ApplicationDeployment.IsNetworkDeployed || ApplicationDeployment.CurrentDeployment.CurrentVersion != null)
+                {
+                    IsDeployed = true;
+                }
+                else
+                    IsDeployed = false;
+
+            }
+            catch
+            {
+                IsDeployed = false;
+            }
+        }
+
+        private void AsignServices(IViewAwareStatus viewAwareStatusService, IOpenFileService openFileService, ISaveFileService saveFileService, IUIVisualizerService visualizerService)
+        {
+            this.viewAwareStatusService = viewAwareStatusService;
+            this.openFileService = openFileService;
+            this.saveFileService = saveFileService;
+            this.visualizerService = visualizerService;
+
+            this.viewAwareStatusService.ViewLoaded += ViewAwareStatusService_ViewLoaded;
+        }
+
+        private void InitializeExtensionManager()
+        {
+            extensionManager = new ExtensionManager(this);
+
+            if (IsDeployed)
+                extensionManager.PluginPath = ApplicationDeployment.CurrentDeployment.DataDirectory + @"\plugins";
+            else
+                extensionManager.PluginPath = ".\\plugins";
+        }
+
+        private void ConfigureHelixView()
+        {
+            helixView = new HelixView3D();
+
+            helixView.Name = "helixView";
+            helixView.SnapsToDevicePixels = true;
+            helixView.IsHeadLightEnabled = true;
+
+            LoadHelixConfiguration();
+
+            //helixView.ShowCoordinateSystem = true;
+            //helixView.ShowViewCube = true;
+            helixView.ModelUpDirection = new Vector3D(0, -1, 0);
+
+            System.Windows.Interactivity.EventTrigger mouseLeftButtonDownTrigger = new System.Windows.Interactivity.EventTrigger("MouseLeftButtonDown");
+            mouseLeftButtonDownTrigger.Actions.Add(new EventToCommandTrigger() { Command = MouseDownCommand });
+            mouseLeftButtonDownTrigger.Attach(helixView);
+
+            System.Windows.Interactivity.EventTrigger mouseLeftButtonUpTrigger = new System.Windows.Interactivity.EventTrigger("MouseLeftButtonUp");
+            mouseLeftButtonUpTrigger.Actions.Add(new EventToCommandTrigger() { Command = MouseButtonUpCommand });
+            mouseLeftButtonUpTrigger.Attach(helixView);
+
+            System.Windows.Interactivity.EventTrigger mouseMoveTrigger = new System.Windows.Interactivity.EventTrigger("MouseMove");
+            mouseMoveTrigger.Actions.Add(new EventToCommandTrigger() { Command = MouseMoveCommand });
+            mouseMoveTrigger.Attach(helixView);
+
+            System.Windows.Interactivity.Interaction.GetTriggers(helixView).Add(mouseLeftButtonDownTrigger);
+
+            helixView.Camera = new PerspectiveCamera(new Point3D(5, -30, -40), new Vector3D(-5, 40, 40), new Vector3D(0, -1, 0), 45);
+
+            //Binding modelBinding = new Binding("Model");
+            //modelBinding.Source = this;
+
+            helixView.ItemsSource = Model;
+
+            offsetSphere = new SphereVisual3D() { Radius = settingsManager.TechneSettings.OffsetSphereRadius };
+        }
+
+        private void InitializeCommands()
+        {
+            MouseDownCommand = new SimpleCommand<Object, Object>(ExecuteMouseDownCommand);
+            LoadTextureCommand = new SimpleCommand<Object, Object>(ExecuteLoadTextureCommand);
+            OpenCommand = new SimpleCommand<Object, Object>(ExecuteOpenCommand);
+            SaveCommand = new SimpleCommand<Object, Object>(ExecuteSaveCommand);
+            SaveAsCommand = new SimpleCommand<Object, Object>(ExecuteSaveAsCommand);
+            ClearCommand = new SimpleCommand<Object, Object>(ExecuteClearCommand);
+            QuitCommand = new SimpleCommand<Object, Object>(ExecuteQuitCommand);
+            KeyUpCommand = new SimpleCommand<Object, Object>(ExecuteKeyUpCommand);
+            ChangeSelectedVisualCommand = new SimpleCommand<Object, Object>(ExecuteChangeSelectedVisualCommand);
+            OpenExtensionGalleryCommand = new SimpleCommand<Object, Object>(ExecuteOpenExtensionGalleryCommand);
+            ChangeGroupingCommand = new SimpleCommand<object, object>(ExecuteChangeGroupingCommand);
+            SelectedElementChangedCommand = new SimpleCommand<object, object>(ExecuteSelectedElementChangedCommand);
+            NewModelCommand = new SimpleCommand<object, object>(ExecuteNewModelCommand);
+            OpenSettingsCommand = new SimpleCommand<object, object>(ExecuteOpenSettingsCommand);
+            ToggleShowcaseCommand = new SimpleCommand<object, object>(ExecuteToggleShowcaseCommand);
+            SendFeedbackCommand = new SimpleCommand<object, object>(ExecuteSendFeedbackCommand);
+            OpenConsoleCommand = new SimpleCommand<object, object>(ExecuteOpenConsoleCommand);
+            OpenBackupFolderCommand = new SimpleCommand<object, object>(ExecuteOpenBackupFolderCommand);
+            MouseMoveCommand = new SimpleCommand<object, object>(ExecuteMouseMoveCommand);
+            MouseButtonUpCommand = new SimpleCommand<object, object>(ExecuteMouseButtonUpCommand);
+
+            AnimateCommand = new SimpleCommand<object, object>(ExecuteAnimateCommand);
+            //Model.CollectionChanged += new System.Collections.Specialized.NotifyCollectionChangedEventHandler(Model_CollectionChanged);
+        }
+        #endregion
+
+        #region EventHandler
+        private void ViewAwareStatusService_ViewLoaded()
+        {
+            if (Designer.IsInDesignMode)
+                return;
+            try
+            {
+                if (IsDeployed && settingsManager.Settings.AskedPermission == false)
+                {
+                    var result = MessageBox.Show("This Techne version supports the automatic reporting of crashes.\r\nThe only information that is going to be sent is the exception which caused the crash\r\nThe reports are also stored in %user%\\AppData\\local\\Techne\r\nIt will considerably help Techne if you allow those reports to be sent\r\nIf you consent to it being sent press Yes, otherwise No\r\nYou can always change this setting in the options menu", "Allow Techne to send crash-reports?", MessageBoxButton.YesNo);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        settingsManager.Settings.AskedPermission = true;
+                        settingsManager.Settings.AutoReportErrors = true;
+                    }
+                    else
+                    {
+                        settingsManager.Settings.AskedPermission = true;
+                        settingsManager.Settings.AutoReportErrors = false;
+                    }
+                    settingsManager.Save();
+                }
+
+                //insert everything before something could go wrong ;)
+                InsertStandardModels();
+
+                extensionManager.Initialize();
+
+                //NotifyPropertyChanged(ShapeToolBarItems);
+                NotifyPropertyChanged("ToolToolBarItems");
+                NotifyPropertyChanged(exportPluginMenuItemsChangeArgs);
+
+                updateManager.CheckForUpdates(settingsManager.Version);
+
+                PythonConsole = new PythonConsoleViewModel(this);
+
+                backupManager = new BackupManager();
+
+                //string crashFile = crashFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Techne", "TechneCrashFile");
+                
+                //if (CheckCrashstate(crashFile))
+                //{
+                //    string fileToOpen = null;
+                //    var file = Directory.GetFiles(backupManager.BackupPath, "Error-*.tcn", SearchOption.TopDirectoryOnly).OrderByDescending(x => Directory.GetCreationTime(x)).FirstOrDefault();
+
+                //    if (file != null && File.Exists(file))
+                //    {
+                //        MessageBox.Show("Looks like Techne crashed last time.\r\nWe said we saved your model, I hope everything is in order :)");
+                //        fileToOpen = file;
+                //    }
+                //    else
+                //    {
+                //        var backupFile = Directory.GetFiles(backupManager.BackupPath, "Backup-*.tcn", SearchOption.TopDirectoryOnly).OrderByDescending(x => Directory.GetCreationTime(x)).FirstOrDefault();
+
+                //        if (backupFile != null && File.Exists(backupFile))
+                //        {
+                //            MessageBox.Show("Techne crashed the last time and your model wasn't saved.\r\nBut here is a backup-file, I hope you didn't lose too much");
+                //            fileToOpen = backupFile;
+                //        }
+                //    }
+
+                //    if (!String.IsNullOrEmpty(fileToOpen) && File.Exists(fileToOpen))
+                //    {
+                //        OpenModel(fileToOpen);
+                //    }
+                //}
+                //else
+                //{
+                //  File.Create(crashFile);
+
+                    //var props = Techne.Properties.Settings.Default.Properties;
+                    if (!String.IsNullOrEmpty(App.Current.Properties["FileName"] as String))
+                    {
+                        OpenModel(App.Current.Properties["FileName"] as String);
+                    }
+                    else
+                    {
+                        if (settingsManager.TechneSettings.ShowNewProjectDialogOnStartup)
+                            OpenDialog(new NewProjectViewModel(this), "NewProjectView");
+                    }
+                //}
+
+                backupManager.Start(this);
+
+                hitTestManager = new HitTestManager(this);
+            }
+            catch (Exception x)
+            {
+                MessageBox.Show(x.ToString());
+            }
+        }
+
+        private bool CheckCrashstate(string crashFile)
+        {
+            return File.Exists(crashFile);
+        }
+
+        void updateManager_NewVersionAvailableEvent(object sender, EventArgs e)
+        {
+            ChangelogViewModel log = updateManager.GetChangelog();
+
+            if (Dispatcher.CurrentDispatcher.CheckAccess())
+            {
+                ShowUpdateDialog(log);
+            }
+            else
+            {
+                Dispatcher.CurrentDispatcher.Invoke(new Action(() =>
+                {
+                    ShowUpdateDialog(log);
+                }));
+            }
+
+            if (IsDeployed)
+            {
+                settingsManager.Version = ApplicationDeployment.CurrentDeployment.CurrentVersion;
+            }
+            else
+            {
+                settingsManager.Version = updateManager.LatestVersion ?? settingsManager.Version;
+            }
+
+            settingsManager.Save();
+        }
+        #endregion
+
+        #region Methods
+        #region private
+        private void LoadHelixConfiguration()
+        {
+            helixView.ShowCameraTarget = settingsManager.HelixViewSettings.ShowCameraTarget;
+            helixView.ShowViewCube = settingsManager.HelixViewSettings.ShowViewCube;
+            helixView.ShowFieldOfView = settingsManager.HelixViewSettings.ShowFieldOfView;
+            helixView.ShowFrameRate = settingsManager.HelixViewSettings.ShowFrameRate;
+            helixView.ShowCoordinateSystem = settingsManager.HelixViewSettings.ShowCoordinateSystem;
+            helixView.CameraInertiaFactor = settingsManager.HelixViewSettings.CameraInertiaFactor;
+            helixView.CameraMode = settingsManager.HelixViewSettings.CameraMode;
+            helixView.CameraRotationMode = settingsManager.HelixViewSettings.CameraRotationMode;
+            helixView.InfiniteSpin = settingsManager.HelixViewSettings.InfiniteSpin;
+            helixView.Orthographic = settingsManager.HelixViewSettings.Orthographic;
+            helixView.RotationSensitivity = settingsManager.HelixViewSettings.RotationSensitivity;
+            offsetSphere = new SphereVisual3D() { Radius = settingsManager.TechneSettings.OffsetSphereRadius };
+        }
+        private void ShowUpdateDialog(ChangelogViewModel log)
+        {
+            //visualizerService.ShowDialog("ChangelogView", log);
+        }
+        private void OpenDialog(ViewModelBase viewModel, string viewName)
+        {
+            visualizerService.ShowDialog(viewName, viewModel);
+        }
+        private void OpenWindow(ViewModelBase viewModel, string viewName)
+        {
+            visualizerService.Show(viewName, viewModel, true, null);
+        }
+        public void FocusSelectedVisual()
+        {
+            if (SelectedVisual != null)
+                helixView.LookAt(SelectedVisual.Center, 50, 500);
+        }
+
+        public void AddShape(string guidString)
+        {
+            ITechneVisual visual;
+
+            if (!extensionManager.ShapePlugins.ContainsKey(guidString))
+                visual = extensionManager.ShapePlugins["D9E621F7-957F-4B77-B1AE-20DCD0DA7751".ToLower()].CreateVisual();
+            else
+                visual = extensionManager.ShapePlugins[guidString].CreateVisual();
+
+            visual.Texture = Texture;
+            visual.Name = "New Shape";
+            int i = 1;
+
+            var stuff = TechneModel.Where(x => (x.Name ?? "").Equals(visual.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+
+            while (!(stuff == null || i > 100) && TechneModel.Count != 0)
+            {
+                visual.Name = "New Shape" + i.ToString();
+
+                stuff = TechneModel.Where(x => (x.Name ?? "").Equals(visual.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                i++;
+            }
+
+
+            if (Keyboard.Modifiers != ModifierKeys.Shift)
+                AddVisual(visual);
+            else
+                AddVisualToSelection((Visual3D)visual);
+        }
+        private void ShowWireframeAndAnchor()
+        {
+            MultiBinding rectBinding = new MultiBinding();
+            rectBinding.Bindings.Add(new Binding("Offset") { Source = SelectedVisual });
+            rectBinding.Bindings.Add(new Binding("Position") { Source = SelectedVisual });
+            rectBinding.Bindings.Add(new Binding("Size") { Source = SelectedVisual });
+            rectBinding.Converter = new Vector3DAddingToRect3DConverter();
+
+            BindingOperations.SetBinding(offsetSphere, SphereVisual3D.CenterProperty, new Binding("Position") { Source = SelectedVisual, Converter = new Vector3DToPoint3DConverter() });
+            BindingOperations.SetBinding(boxWireframe, BoundingBoxVisual3D.BoundingBoxProperty, rectBinding);
+            BindingOperations.SetBinding(boxWireframe, BoundingBoxVisual3D.TransformProperty, new Binding("Transform") { Source = SelectedVisual });
+
+            //if (hitTestManager.ThreeAxisControlVisual3D != null && !Model.Contains(hitTestManager.ThreeAxisControlVisual3D))
+            //{
+            //    BindingOperations.SetBinding(hitTestManager.ThreeAxisControlVisual3D, BoundingBoxVisual3D.TransformProperty, new Binding("Transform") { Source = SelectedVisual });
+            //    var position = SelectedVisual.Center.ToVector3D();
+            //    //position.X += SelectedVisual.Width / 2;
+            //    //position.Y += SelectedVisual.Length / 2;
+            //    //position.Z += SelectedVisual.Height / 2;
+            //    hitTestManager.ThreeAxisControlVisual3D.Position = position;
+            //    Model.Add(hitTestManager.ThreeAxisControlVisual3D);
+            //}
+            if (!Model.Contains(offsetSphere))
+            {
+                Model.Add(offsetSphere);
+            }
+            if (!Model.Contains(boxWireframe))
+            {
+                Model.Add(boxWireframe);
+            }
+        }
+
+        private void InsertStandardModels()
+        {
+            var defaultLight = new HelixToolkit.DefaultLightsVisual3D();
+            (defaultLight.Content as Model3DGroup).Children.Add(new DirectionalLight(Color.FromRgb(180, 180, 180), new Vector3D(1, 1, 1)));
+
+            Model.Add(defaultLight);
+
+            gridLines = new HelixToolkit.GridLinesVisual3D() { Center = new Point3D(8, 24, 8), Thickness = 0.05, Length = 100, Width = 100, Normal = new Vector3D(0, 1, 0), MajorDistance = 16, MinorDistance = 1 };
+
+            Model.Add(gridLines);
+
+            CreateScenery();
+        }
+
+        private void CreateScenery()
+        {
+            ground = new ModelVisual3D();
+
+            HelixToolkit.MeshBuilder b = new HelixToolkit.MeshBuilder();
+            b.AddBox(new Point3D(0, 24 + 8, 0), 16, 16, 16);
+            var mesh = b.ToMesh();
+
+            //if ((faces & BoxFaces.Front) == BoxFaces.Front)
+            //    AddCubeFace(center, new Vector3D(0, 1, 0), new Vector3D(0, 0, 1), xLength, yLength, zLength);
+            //if ((faces & BoxFaces.Left) == BoxFaces.Left)
+            //    AddCubeFace(center, new Vector3D(-1, 0, 0), new Vector3D(0, 0, 1), yLength, xLength, zLength);
+            //if ((faces & BoxFaces.Right) == BoxFaces.Right)
+            //    AddCubeFace(center, new Vector3D(1, 0, 0), new Vector3D(0, 0, 1), yLength, xLength, zLength);
+            //if ((faces & BoxFaces.Back) == BoxFaces.Back)
+            //    AddCubeFace(center, new Vector3D(0, -1, 0), new Vector3D(0, 0, 1), xLength, yLength, zLength);
+            //if ((faces & BoxFaces.Top) == BoxFaces.Top)
+            //    AddCubeFace(center, new Vector3D(0, 0, 1), new Vector3D(0, -1, 0), zLength, yLength, xLength);
+            //if ((faces & BoxFaces.Bottom) == BoxFaces.Bottom)
+            //    AddCubeFace(center, new Vector3D(0, 0, -1), new Vector3D(0, 1, 0), zLength, yLength, xLength);
+
+            //top
+            //new Point(0, 0),
+            //new Point(0.25, 0),
+            //new Point(0.25, 1),
+            //new Point(0, 1),
+
+            //side
+            //new Point(0.75, 0),
+            //new Point(1, 0),
+            //new Point(1, 1),
+            //new Point(0.75, 1),
+
+            //bottom
+            //new Point(0.5, 0),
+            //new Point(0.75, 0),
+            //new Point(0.75, 1),
+            //new Point(0.5, 1),
+
+            //mesh.TextureCoordinates = new PointCollection(new List<Point>()
+            //{
+            //    new Point(0.5, 0),
+            //    new Point(0.75, 0),
+            //    new Point(0.75, 1),
+            //    new Point(0.5, 1),
+
+            //    new Point(0.75, 0),
+            //    new Point(1, 0),
+            //    new Point(1, 1),
+            //    new Point(0.75, 1),
+
+            //    new Point(0.75, 0),
+            //    new Point(1, 0),
+            //    new Point(1, 1),
+            //    new Point(0.75, 1),
+
+            //    new Point(0, 0),
+            //    new Point(0.25, 0),
+            //    new Point(0.25, 1),
+            //    new Point(0, 1),
+
+            //    new Point(0.75, 0),
+            //    new Point(1, 0),
+            //    new Point(1, 1),
+            //    new Point(0.75, 1),
+
+            //    new Point(0.75, 0),
+            //    new Point(1, 0),
+            //    new Point(1, 1),
+            //    new Point(0.75, 1),
+
+            //});
+
+            //mesh.TextureCoordinates = new PointCollection(new List<Point>()
+            //{
+            //    new Point(16, 0),
+            //    new Point(32, 0),
+            //    new Point(32, 16),
+            //    new Point(16, 16),
+
+            //    new Point(48, 0),
+            //    new Point(64, 0),
+            //    new Point(64, 16),
+            //    new Point(48, 16),
+
+            //    new Point(48, 0),
+            //    new Point(64, 0),
+            //    new Point(64, 16),
+            //    new Point(48, 16),
+
+            //    new Point(0, 0),
+            //    new Point(16, 0),
+            //    new Point(16, 16),
+            //    new Point(0, 16),
+
+            //    new Point(48, 0),
+            //    new Point(64, 0),
+            //    new Point(64, 16),
+            //    new Point(48, 16),
+
+            //    new Point(48, 0),
+            //    new Point(64, 0),
+            //    new Point(64, 16),
+            //    new Point(48, 16),
+
+            //});
+
+            Image image = new Image()
+            {
+                Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("./resources/earth.png", UriKind.Relative))
+            };
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+            var brush = new VisualBrush();
+
+            brush.Visual = image;
+
+            brush.ViewboxUnits = BrushMappingMode.Absolute;
+            brush.Viewbox = new Rect(0, 0, 16, 16);
+            brush.ViewportUnits = BrushMappingMode.RelativeToBoundingBox;
+            brush.Viewport = new Rect(0, 0, 1, 1);
+            //brush.TileMode = TileMode.Tile;
+
+            //ImageBrush imageBrush = new ImageBrush(new System.Windows.Media.Imaging.BitmapImage(new Uri("./resources/earth.png", UriKind.Relative)));
+            //RenderOptions.SetBitmapScalingMode(imageBrush, BitmapScalingMode.NearestNeighbor);
+
+            //imageBrush.ViewboxUnits = BrushMappingMode.Absolute;
+            //imageBrush.Viewbox = new Rect(0, 0, 16, 16);
+
+
+            ground.Content = new GeometryModel3D(mesh, new DiffuseMaterial(brush));
+
+            Model.Add(ground);
+        }
+        #endregion
+        #region internal
+        #region Open/Save
+        internal void OpenModel(Techne.SaveModel saveModel)
+        {
+            this.saveModel = saveModel;
+
+            if (!string.IsNullOrEmpty(saveModel.BaseClass))
+            {
+                if (saveModel.BaseClass.Equals("ModelBase"))
+                {
+                }
+                else if (saveModel.BaseClass.Equals("ModelBiped") || saveModel.BaseClass.Equals("ModelQuadruped"))
+                {
+                    Techne.Importer.DecorationImporter importer = new Importer.DecorationImporter();
+                    string baseModelPath = "./resources/Models/" + saveModel.BaseClass + ".tcn";
+
+                    if (IsDeployed)
+                        baseModelPath = new Uri("./resources/Models/" + saveModel.BaseClass + ".tcn", UriKind.Relative).LocalPath;
+
+                    var result = importer.Import(extensionManager.ShapePlugins, baseModelPath);
+                    foreach (var item in result)
+                    {
+                        item.Texture = null;
+                    }
+                    AddVisual(result);
+                }
+                else
+                {
+                    if (File.Exists(saveModel.BaseClass))
+                    {
+                        Techne.Importer.DecorationImporter importer = new Importer.DecorationImporter();
+                        AddVisual(importer.Import(extensionManager.ShapePlugins, saveModel.BaseClass));
+                    }
+                }
+            }
+        }
+
+        public void OpenModel(string filename)
+        {
+            try
+            {
+                if (!File.Exists(Path.GetFullPath(filename)))
+                    return;
+
+                if (textureStream != null)
+                {
+                    textureStream.Close();
+                    textureStream.Dispose();
+                }
+
+                ClearModel();
+                watcher.EnableRaisingEvents = false;
+
+                FileManager manager = new FileManager();
+                var save = manager.Load(filename, extensionManager.ShapePlugins);
+
+                if (save.Geometry != null)
+                {
+                    foreach (var item in save.Geometry)
+                    {
+                        AddVisual(item);
+                    }
+                }
+
+                textureStream = (MemoryStream)save.TextureStream;
+                Texture = save.Texture;
+
+                UpdateTextureOverlay();
+            }
+            catch (Exception x)
+            {
+
+            }
+        }
+
+        internal void LoadedTextureChanged(object sender, FileSystemEventArgs e)
+        {
+            if (!Cinch.UISynchronizationContext.Instance.InvokeRequired)
+            {
+                LoadTexture(e.FullPath);
+            }
+            else
+            {
+                Cinch.UISynchronizationContext.Instance.InvokeAndBlockUntilCompletion(new Action(() =>
+                {
+                    this.LoadTexture(e.FullPath);
+                }));
+            }
+        }
+
+        public void LoadTexture(string fileName)
+        {
+            try
+            {
+                if (!File.Exists(fileName))
+                    return;
+
+                if (textureStream != null)
+                {
+                    textureStream.Close();
+                    textureStream.Dispose();
+
+                    //textureStream = new MemoryStream();
+                }
+
+                var texture = new System.Windows.Media.Imaging.BitmapImage();
+
+                System.Threading.Thread.Sleep(200);
+
+                textureStream = new MemoryStream(File.ReadAllBytes(fileName));
+
+                texture.BeginInit();
+                texture.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                texture.StreamSource = textureStream;
+                texture.EndInit();
+
+                if ((Math.Round(texture.DpiX) + Math.Round(texture.DpiY) > 97 * 2 || Math.Round(texture.DpiX) + Math.Round(texture.DpiY) < 95 * 2))
+                {
+                    MessageBox.Show("This image doesn't use 96dpi, you need to use your imaging software to save it again.\r\nIf you don't the image wont map correctly in Techne.");
+                }
+
+                texture.Freeze();
+
+                Texture = texture;
+
+                foreach (var item in TechneModel)
+                {
+                    item.Texture = texture;
+                }
+            }
+            catch
+            {
+                //screw you
+            }
+        }
+
+        public void SaveModel(string savedFileName)
+        {
+            try
+            {
+                SelectedVisual = null;
+
+                byte[] backup = null;
+
+                if (File.Exists(savedFileName))
+                {
+                    backup = File.ReadAllBytes(savedFileName);
+
+                    if (File.Exists(savedFileName + ".bak"))
+                        File.Delete(savedFileName + ".bak");
+
+                    File.Move(savedFileName, savedFileName + ".bak");
+                }
+
+                try
+                {
+                    FileManager.Save(savedFileName, saveModel, textureStream);
+                    saveModel.HasChanged = false;
+                    saveModel.Location = savedFileName;
+                    File.Delete(savedFileName + ".bak");
+                }
+                catch (Exception x)
+                {
+                    MessageBox.Show("something went wrong, didn't save model\r\n\r\n" + x.ToString());
+
+                    if (backup != null)
+                        File.WriteAllBytes(savedFileName, backup);
+                }
+
+                Message = "Model successfully saved to " + savedFileName;
+            }
+            catch (Exception x)
+            {
+                MessageBox.Show("something went wrong, didn't save model\r\n\r\n" + x.ToString());
+            }
+        }
+        #endregion
+        public void ReloadConfiguration()
+        {
+            LoadHelixConfiguration();
+        }
+        #endregion
+        #region public
+        public ITechneVisual CloneVisual(ITechneVisual iTechneVisual)
+        {
+            var guid = iTechneVisual.Guid.ToString();
+            ITechneVisual clonedVisual;
+
+            if (extensionManager.ShapePlugins.ContainsKey(guid))
+                clonedVisual = extensionManager.ShapePlugins[guid].CreateVisual();
+            else if (extensionManager.ShapePlugins.ContainsKey("D9E621F7-957F-4B77-B1AE-20DCD0DA7751".ToLower()))
+                clonedVisual = extensionManager.ShapePlugins["D9E621F7-957F-4B77-B1AE-20DCD0DA7751".ToLower()].CreateVisual();
+            else
+                return null;
+
+            clonedVisual.Guid = iTechneVisual.Guid;
+            clonedVisual.Height = iTechneVisual.Height;
+            clonedVisual.Length = iTechneVisual.Length;
+            clonedVisual.Opacity = iTechneVisual.Opacity;
+            clonedVisual.RotationX = iTechneVisual.RotationX;
+            clonedVisual.RotationY = iTechneVisual.RotationY;
+            clonedVisual.RotationZ = iTechneVisual.RotationZ;
+            clonedVisual.Size = iTechneVisual.Size;
+            clonedVisual.Texture = iTechneVisual.Texture;
+            //clonedVisual.TextureCoordinates = copiedModel.TextureCoordinates;
+            clonedVisual.TextureOffset = iTechneVisual.TextureOffset;
+            //clonedVisual.Transform = iTechneVisual.Transform;
+            clonedVisual.Width = iTechneVisual.Width;
+            clonedVisual.Name = iTechneVisual.Name;
+
+            if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                clonedVisual.Position = iTechneVisual.Position;
+                clonedVisual.Offset = iTechneVisual.Offset;
+            }
+
+            return clonedVisual;
+        }
+        #endregion
+        #region protected
+        protected override void NotifyPropertyChanged(PropertyChangedEventArgs args)
+        {
+            //this is ugly
+            //there is a RaiseCloseRequest - I may use that - somehow
+            if (args.Equals(selectedVisualChangeArgs))
+            {
+                saveModel.HasChanged = true;
+                NotifyPropertyChanged(hasChangedChangeArgs);
+            }
+
+            base.NotifyPropertyChanged(args);
+        }
+        #endregion
+        #region History
+        private new void PropertyChanged(ITechneVisual visualHit, HistoryAction historyAction)
+        {
+            if (!historyManager.RecordAction)
+            {
+                historyManager.AddEntry(new HistoryUnit(visualHit, historyAction));
+            }
+        }
+
+        private new void PropertyChanged(object oldValue, object newValue, PropertyInfo property)
+        {
+            if (!historyManager.RecordAction)
+            {
+                if ((oldValue != null && !oldValue.Equals(newValue)) || (newValue != null && !newValue.Equals(oldValue)))
+                {
+                    historyManager.AddEntry(new HistoryUnit(oldValue, newValue, property, HistoryAction.ChangeProperty));
+                }
+            }
+        }
+        #endregion
+        #region Model
+        public void SelectAll()
+        {
+            SelectedVisual = null;
+
+            if ((SelectedVisual as TechneVisualCollection) == null)
+            {
+                SelectedVisual = new TechneVisualCollection();
+            }
+
+            foreach (var item in Model.ToList())
+            {
+                if (item is ITechneVisual)
+                    AddVisualToSelection(item);
+            }
+
+            AddVisual(SelectedVisual);
+        }
+
+        internal void RemoveVisualFromCollection(TechneVisualCollection collection, Visual3D visualHit)
+        {
+            if (collection == null)
+                return;
+
+            var redoState = historyManager.RecordAction;
+            historyManager.RecordAction = true;
+
+            collection.Children.Remove(visualHit);
+            AddVisual(visualHit);
+
+            historyManager.RecordAction = redoState;
+            PropertyChanged((ITechneVisual)visualHit, HistoryAction.RemoveSelection);
+            historyManager.RecordAction = true;
+
+            //remove collection if only one item left
+            if (collection.Children.Count == 1)
+            {
+                var selection = collection;
+                var visual = collection.Children[0] as ITechneVisual;
+                collection.Children.Remove((Visual3D)visual);
+                AddVisual(visual);
+                RemoveVisual((Visual3D)selection);
+
+                historyManager.RecordAction = redoState;
+                PropertyChanged(visual, HistoryAction.RemoveSelection);
+            }
+            else if (collection.Children.Count == 0)
+            {
+                RemoveVisual((Visual3D)collection);
+            }
+            else
+            {
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+
+            //brauch ich das nicht?
+            ////redoAction = redoState;
+
+            PropertyChanged((ITechneVisual)visualHit, HistoryAction.RemoveSelection);
+        }
+
+        internal void AddVisualToSelection(Visual3D visualHit)
+        {
+            var redoState = historyManager.RecordAction;
+            historyManager.RecordAction = true;
+
+            ITechneVisual old;
+
+            var selectedVisual = SelectedVisual;
+
+            if (selectedVisual != null && !(selectedVisual is TechneVisualCollection))
+            {
+
+                RemoveVisual(selectedVisual);
+
+                selectedVisual = new TechneVisualCollection(selectedVisual);
+                selectedVisual.Name = "Multiselection";
+
+                //collection.Children.Add(visualHit);
+
+                AddVisual((ITechneVisual)selectedVisual);
+
+                SelectedVisual = selectedVisual;
+            }
+
+            if (!visualHit.Equals(selectedVisual))
+            {
+                RemoveVisual(visualHit);
+
+                (selectedVisual as TechneVisualCollection).Children.Add(visualHit);
+
+                SelectedVisual = selectedVisual;
+
+                historyManager.RecordAction = redoState;
+
+                PropertyChanged((ITechneVisual)visualHit, HistoryAction.AddToSelection);
+            }
+        }
+
+        internal void ChangeOpacity(double opacity)
+        {
+            foreach (var item in TechneModel)
+            {
+                var visual = item as ITechneVisual;
+                if (visual == null)
+                    continue;
+
+                if (SelectedVisual != null && SelectedVisual.Equals(item))
+                {
+                    //if (visual.Opacity != 1)
+                    visual.Opacity = 1;
+                    continue;
+                }
+
+                if (visual.Opacity != opacity)
+                    visual.Opacity = opacity;
+            }
+        }
+
+        private void DeselectVisual()
+        {
+            var collection = SelectedVisual as TechneVisualCollection;
+
+            if (collection != null && collection.Children.Count > 0 && collection.Name == "Multiselection")
+            {
+                foreach (var item in collection.Children.ToList())
+                {
+                    if (collection.Children.Count > 0)
+                    {
+                        RemoveVisualFromCollection(collection, item);
+                    }
+                }
+            }
+
+            //if (collection != null && collection.Children.Count == 0)
+            //{
+
+            //}
+
+            ChangeOpacity(1);
+
+            BindingOperations.ClearAllBindings(offsetSphere);
+            BindingOperations.ClearAllBindings(boxWireframe);
+
+            if (Model.Contains(offsetSphere))
+            {
+                Model.Remove(offsetSphere);
+            }
+            if (Model.Contains(boxWireframe))
+            {
+                Model.Remove(boxWireframe);
+            }
+        }
+
+        private void SelectVisual()
+        {
+            ShowWireframeAndAnchor();
+            ChangeOpacity(0.5);
+
+            if (SelectedVisual is TechneVisualCollection)
+            {
+                TextureViewerOverlay = null;
+            }
+
+            UpdateTextureOverlay();
+
+            if (settingsManager.TechneSettings.FocusSelectedShape)
+                FocusSelectedVisual();
+        }
+
+        public void AddVisual(ITechneVisual visual)
+        {
+<<<<<<< local
+            Model.Add((Visual3D)visual);
+            TechneModel.Add(visual);
+            if (!saveModel.Geometry.Contains(visual))
+                saveModel.Geometry.Add(visual);
+=======
+            AddVisual(visual as Visual3D);
+            //Model.Add((Visual3D)visual);
+            //TechneModel.Add(visual);
+>>>>>>> other
+
+<<<<<<< local
+            SelectedVisual = null;
+=======
+            //SelectedVisual = null;
+>>>>>>> other
+
+<<<<<<< local
+            var oldAction = historyManager.RecordAction;
+            historyManager.RecordAction = true;
+=======
+            //var oldAction = historyManager.RecordAction;
+            //historyManager.RecordAction = true;
+>>>>>>> other
+
+<<<<<<< local
+            SelectedVisual = visual;
+            historyManager.RecordAction = oldAction;
+=======
+            //SelectedVisual = visual;
+            //historyManager.RecordAction = oldAction;
+>>>>>>> other
+
+<<<<<<< local
+            PropertyChanged(visual, HistoryAction.AddVisual);
+=======
+            //PropertyChanged(visual, HistoryAction.AddVisual);
+>>>>>>> other
+
+<<<<<<< local
+            UpdateTextureOverlay();
+=======
+            //UpdateTextureOverlay();
+>>>>>>> other
+        }
+
+        public void AddVisual(Visual3D visual)
+        {
+            Model.Add(visual);
+
+            var techneVisual = visual as ITechneVisual;
+
+            if (techneVisual != null)
+            {
+                TechneModel.Add(techneVisual);
+<<<<<<< local
+                saveModel.Geometry.Add(techneVisual);
+=======
+
+                SelectedVisual = null;
+
+                var oldAction = historyManager.RecordAction;
+                historyManager.RecordAction = true;
+                SelectedVisual = techneVisual;
+                historyManager.RecordAction = oldAction;
+
+>>>>>>> other
+                PropertyChanged(techneVisual, HistoryAction.AddVisual);
+
+                UpdateTextureOverlay();
+            }
+        }
+
+        internal void UpdateTextureOverlay()
+        {
+            Canvas canvas = new Canvas();
+
+            GetTextureOverlay(TechneModel, ref canvas);
+
+            TextureViewerOverlay = canvas;
+        }
+
+        private void GetTextureOverlay(IEnumerable<ITechneVisual> visuals, ref Canvas canvas, bool isSelected = false)
+        {
+            foreach (var item in visuals)
+            {
+                string guid = item.Guid.ToString();
+                if (!extensionManager.ShapePlugins.ContainsKey(guid))
+                {
+                    //guid = "D9E621F7-957F-4B77-B1AE-20DCD0DA7751";
+                    return;
+                }
+                //if (!extensionManager.ShapePlugins.ContainsKey(guid))
+                //{
+                //    return;
+                //}
+
+                if (item is TechneVisualCollection)
+                {
+
+                    GetTextureOverlay(((TechneVisualCollection)item).Children.Cast<ITechneVisual>(), ref canvas, isSelected || item.Equals(SelectedVisual));
+                }
+                else
+                {
+                    var overlay = extensionManager.ShapePlugins[guid].GetTextureViewerOverlay(item);
+
+                    //foreach (UIElement item2 in overlay.Children)
+                    //{
+                    //    //todo: add adorner bla
+                    //}
+
+                    if (!isSelected && !item.Equals(SelectedVisual))
+                    {
+                        overlay.Opacity = 0.25;
+                    }
+                    else
+                    {
+                        overlay.Opacity = 0.75;
+                    }
+
+                    canvas.Children.Add(overlay);
+                    //TextureViewerOverlay = overlay;
+                }
+            }
+        }
+
+        private void AddVisual(IEnumerable<ITechneVisual> visuals)
+        {
+            foreach (var item in visuals)
+            {
+                if (item.IsDecorative)
+                {
+                    item.Opacity = settingsManager.TechneSettings.DecorationOpacity;
+                }
+                AddVisual(item);
+            }
+        }
+
+        public void RemoveVisual(Visual3D visual3D)
+        {
+            Model.Remove(visual3D);
+
+            var techneVisual = visual3D as ITechneVisual;
+
+            if (techneVisual != null)
+            {
+                if (SelectedVisual.Equals(techneVisual))
+                    SelectedVisual = null;
+
+                var collection = techneVisual as TechneVisualCollection;
+
+                if (collection != null && collection.Children.Count > 0)
+                {
+                    var children = collection.Children.ToList();
+
+                    foreach (var item in children)
+                    {
+                        collection.Children.Remove(item);
+                        AddVisual(item);
+                    }
+                }
+
+                if (ModelTreeTreeView.SelectedItem == techneVisual)
+                    ModelTreeTreeView.SetSelectedItem(null);
+
+                TechneModel.Remove(techneVisual);
+                saveModel.Geometry.Remove(techneVisual);
+                PropertyChanged(techneVisual, HistoryAction.RemoveVisual);
+            }
+        }
+
+        public void RemoveVisual(ITechneVisual visual)
+        {
+<<<<<<< local
+            if (SelectedVisual.Equals(visual))
+                SelectedVisual = null;
+=======
+            RemoveVisual(visual as Visual3D);
+            //if (SelectedVisual.Equals(visual))
+            //    SelectedVisual = null;
+>>>>>>> other
+
+<<<<<<< local
+            var collection = visual as TechneVisualCollection;
+=======
+            //var collection = visual as TechneVisualCollection;
+>>>>>>> other
+
+<<<<<<< local
+            if (collection != null && collection.Children.Count > 0)
+            {
+                var children = collection.Children.ToList();
+=======
+            //if (collection != null && collection.Children.Count > 0)
+            //{
+            //    var children = collection.Children.ToList();
+>>>>>>> other
+
+<<<<<<< local
+                foreach (var item in children)
+                {
+                    collection.Children.Remove(item);
+                    AddVisual(item);
+                }
+            }
+=======
+            //    foreach (var item in children)
+            //    {
+            //        collection.Children.Remove(item);
+            //        AddVisual(item);
+            //    }
+            //}
+>>>>>>> other
+
+<<<<<<< local
+            Model.Remove((Visual3D)visual);
+            TechneModel.Remove(visual);
+            saveModel.Geometry.Remove(visual);
+=======
+            //Model.Remove((Visual3D)visual);
+>>>>>>> other
+
+<<<<<<< local
+            PropertyChanged(visual, HistoryAction.RemoveVisual);
+=======
+            //if (ModelTreeTreeView.SelectedItem == visual)
+            //    ModelTreeTreeView.SetSelectedItem(null);
+
+            //TechneModel.Remove(visual);
+
+            //PropertyChanged(visual, HistoryAction.RemoveVisual);
+            //PropertyChanged(visual, null, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.Model)));
+            //historyManager.AddEntry(new HistoryUnit(visual, null, Model));
+>>>>>>> other
+        }
+
+        public void ClearModel()
+        {
+            Model.Clear();
+            TechneModel.Clear();
+            saveModel.Geometry.Clear();
+            InsertStandardModels();
+        }
+
+
+        #endregion
+        #endregion
+
+        #region Command Handler
+
+        #region Tools
+        internal void AddNewShapeCommand(Object obj)
+        {
+            var guid = obj as Guid?;
+            if (!guid.HasValue)
+                return;
+
+            AddShape(guid.Value.ToString());
+        }
+
+        internal void ExecuteLoadTextureCommand(Object obj)
+        {
+            //openFileService.InitialDirectory = @"C:\";
+            openFileService.Filter = "*.png | *.png";
+
+            var result = openFileService.ShowDialog(null);
+            if (result.HasValue && result.Value == true)
+            {
+                string fileName = openFileService.FileName;
+
+                //watcher = new FileSystemWatcher();
+                watcher.EnableRaisingEvents = false;
+                LoadTexture(fileName);
+                watcher.Path = Path.GetDirectoryName(fileName);
+                watcher.Filter = Path.GetFileName(fileName);
+                watcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.LastWrite;
+                watcher.EnableRaisingEvents = true;
+            }
+        }
+
+        internal void ExecuteChangeSelectedVisualCommand(Object obj)
+        {
+            //var eventArgs = obj as EventToCommandArgs;
+
+            //if (eventArgs == null)
+            //    return;
+
+            //var selectionArgs = eventArgs.EventArgs as SelectionChangedEventArgs;
+
+            //if (selectionArgs == null)
+            //    return;
+
+            //SelectedVisual = (ITechneVisual)selectionArgs.AddedItems[0];
+        }
+
+        internal void ExecuteClearCommand(Object obj)
+        {
+            ClearModel();
+        }
+        #endregion
+
+        #region Menu
+
+        internal void ExecuteOpenBackupFolderCommand(Object obj)
+        {
+            // suppose that we have a test.txt at E:\
+            string filePath;
+
+            if (backupManager == null || String.IsNullOrEmpty(backupManager.BackupPath))
+                filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Techne");
+            else
+                filePath = backupManager.BackupPath;
+
+            if (!Directory.Exists(filePath))
+            {
+                Directory.CreateDirectory(filePath);
+            }
+
+            // combine the arguments together
+            // it doesn't matter if there is a space after ','
+            string argument = @"/root, " + filePath;
+
+            System.Diagnostics.Process.Start("explorer.exe", argument);
+        }
+
+        internal void ExecuteSendFeedbackCommand(Object obj)
+        {
+            OpenDialog(new FeedbackViewModel(), "FeedbackView");
+        }
+
+        internal void ExecuteQuitCommand(Object obj)
+        {
+            Application.Current.Shutdown();
+        }
+        internal void ExecuteOpenConsoleCommand(Object obj)
+        {
+            //if (pythonConsoleView != null)
+            //{
+            //    pythonConsoleView.Close();
+            //    return;
+            //}
+
+            //if (settingsManager.TechneSettings.ShowConsoleQuakeStyle)
+            //{
+            //    pythonConsoleView = new Views.PythonConsoleView();
+            //    pythonConsoleView.DataContext = pythonConsole;
+            //    pythonConsoleView.ShowInTaskbar = false;
+            //    pythonConsoleView.Closed += new EventHandler(pythonConsoleView_Closed);
+            //    pythonConsoleView.Loaded += new RoutedEventHandler(pythonConsoleView_Loaded);
+            //    //pythonConsoleView.LostFocus += new RoutedEventHandler(pythonConsoleView_LostFocus);
+            //    pythonConsoleView.Deactivated += new EventHandler(pythonConsoleView_Deactivated);
+            //    //Binding widthBinding = new Binding("ActualWidth");
+            //    //widthBinding.Source = Application.Current.Windows[0];
+            //    //pythonConsoleView.SetBinding(Techne.Views.PythonConsoleView.WidthProperty, widthBinding);
+
+            //    pythonConsoleView.Width = Application.Current.Windows[0].ActualWidth;
+            //    pythonConsoleView.Height = 100;
+            //    pythonConsoleView.WindowStyle = WindowStyle.None;
+            //    pythonConsoleView.ResizeMode = ResizeMode.NoResize;
+            //    pythonConsoleView.Margin = new Thickness(0);
+            //    pythonConsoleView.WindowStartupLocation = WindowStartupLocation.Manual;
+            //    pythonConsoleView.Top = Application.Current.Windows[0].Top + 25;
+            //    pythonConsoleView.Left = Application.Current.Windows[0].Left;
+            //    pythonConsoleView.Opacity = 0.6;
+            //    //pythonConsoleView.Topmost = true;
+
+            //    pythonConsoleView.Show();
+            //}
+            //else
+            //{
+                OpenWindow(PythonConsole, "PythonConsoleView");
+            //}
+        }
+
+        void pythonConsoleView_Deactivated(object sender, EventArgs e)
+        {
+            if (pythonConsoleView != null)
+                pythonConsoleView.Close();
+        }
+
+        void pythonConsoleView_Loaded(object sender, RoutedEventArgs e)
+        {
+            var myStoryboard = new Storyboard();
+
+            Storyboard.SetTarget(myStoryboard, pythonConsoleView);
+            Storyboard.SetTargetProperty(myStoryboard, new PropertyPath(Window.HeightProperty));
+
+            myStoryboard.Completed += new EventHandler(myStoryboard_Completed);
+
+            var animation = new DoubleAnimation(0, Application.Current.Windows[0].Height / 100 * 80, new Duration(new TimeSpan(0, 0, 1)))
+                {
+                    AccelerationRatio = 0.5
+                };
+
+            myStoryboard.Children.Add(animation);
+
+            myStoryboard.Begin();
+        }
+
+        void myStoryboard_Completed(object sender, EventArgs e)
+        {
+            //Binding heightBinding = new Binding("ActualHeight");
+            //heightBinding.Source = Application.Current.Windows[0];
+            //heightBinding.Converter = new Techne.ValueConverters.PercentageConverter();
+            //heightBinding.ConverterParameter = 80;
+            //pythonConsoleView.SetBinding(Techne.Views.PythonConsoleView.HeightProperty, heightBinding);
+            if (pythonConsoleView != null)
+            {
+                pythonConsoleView.Height = Application.Current.Windows[0].ActualHeight / 100 * 80;
+                pythonConsoleView.Opacity = 0.6;
+                Application.Current.Windows[0].SizeChanged += new SizeChangedEventHandler(window_SizeChanged);
+                Application.Current.Windows[0].LocationChanged += new EventHandler(window_LocationChanged);
+            }
+        }
+
+        void window_LocationChanged(object sender, EventArgs e)
+        {
+            var window = sender as Window;
+            if (window == null)
+                return;
+
+            pythonConsoleView.Top = window.Top + 25;
+            pythonConsoleView.Left = window.Left;
+        }
+
+        void window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            var window = sender as Window;
+            if (window == null)
+                return;
+
+            pythonConsoleView.Width = window.RenderSize.Width;
+            pythonConsoleView.Height = window.RenderSize.Height * 0.8;
+        }
+
+        void pythonConsoleView_Closed(object sender, EventArgs e)
+        {
+            pythonConsoleView = null;
+        }
+
+        internal void ExecuteNewModelCommand(Object obj)
+        {
+            //ClearModel();
+            var viewModel = new NewProjectViewModel(this);
+
+            OpenDialog(viewModel, "NewProjectView");
+        }
+
+        internal void ExecuteChangeGroupingCommand(Object obj)
+        {
+            var collection = obj as TechneVisualCollection;
+
+            if (collection != null)
+            {
+                if (collection.Name.Equals("Multiselection", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    collection.Name = "Selection Group";
+                }
+                else
+                {
+                    if (collection.Equals(SelectedVisual))
+                    {
+                        collection.Name = "Multiselection";
+                    }
+                    else
+                    {
+                        foreach (var item in collection.Children.ToList())
+                        {
+                            if (collection.Children.Count > 0)
+                                RemoveVisualFromCollection(collection, item);
+                        }
+                    }
+                }
+
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+                NotifyPropertyChanged(elementNameChangeArgs);
+                NotifyPropertyChanged(techneModelChangeArgs);
+            }
+        }
+
+        internal void ExecuteSelectedElementChangedCommand(Object obj)
+        {
+            var eventArgs = obj as Cinch.EventToCommandArgs;
+
+            if (eventArgs == null)
+                return;
+
+            var propertyChangedArgs = eventArgs.EventArgs as RoutedPropertyChangedEventArgs<object>;
+
+            if (propertyChangedArgs == null)
+                return;
+
+            if (propertyChangedArgs.NewValue != propertyChangedArgs.OldValue)
+                SelectedVisual = propertyChangedArgs.NewValue as ITechneVisual;
+        }
+
+        internal void ExecuteOpenCommand(Object obj)
+        {
+            try
+            {
+                historyManager.RecordAction = true;
+
+                openFileService.FileName = "";
+                openFileService.Filter = "Techne Model|*tcn; *.zip";
+
+                var result = openFileService.ShowDialog(null);
+
+                if (result.HasValue && result.Value == true)
+                {
+                    string filename = openFileService.FileName;
+
+                    OpenModel(filename);
+
+                    //Model = tmp;
+                }
+            }
+            catch (Exception x)
+            {
+                MessageBox.Show(x.ToString());
+            }
+
+            historyManager.RecordAction = false;
+        }
+
+        internal void ExecuteSaveCommand(Object obj)
+        {
+            if (String.IsNullOrEmpty(saveModel.Location))
+                ExecuteSaveAsCommand(obj);
+            else
+                SaveModel(saveModel.Location);
+        }
+
+        internal void ExecuteSaveAsCommand(Object obj)
+        {
+            saveFileService.Filter = "Techne Model|*.tcn";
+            saveFileService.OverwritePrompt = true;
+
+            var result = saveFileService.ShowDialog(null);
+            if (result.HasValue && result.Value == true)
+            {
+                string savedFileName = saveFileService.FileName;
+
+                SaveModel(savedFileName);
+            }
+        }
+
+        internal void ExecuteExportCommand(Object obj)
+        {
+            var plugin = obj as IExportPlugin;
+
+            if (plugin == null)
+                return;
+
+            saveFileService.FileName = "";
+            saveFileService.Filter = plugin.Filter;
+            saveFileService.OverwritePrompt = true;
+
+            var result = saveFileService.ShowDialog(null);
+            if (result.HasValue && result.Value == true)
+            {
+                SelectedVisual = null;
+
+                string savedFileName = saveFileService.FileName;
+
+                if (File.Exists(savedFileName))
+                    File.Delete(savedFileName);
+
+                //var visuals = new List<ITechneVisual>();
+
+                //foreach (var item in Model)
+                //{
+                //    var visual = item as ITechneVisual;
+                //    if (visual == null)
+                //        continue;
+
+                //    visuals.Add(visual);
+                //}
+
+                plugin.Export(savedFileName, TechneModel, extensionManager.ShapePlugins, saveModel);
+            }
+        }
+
+        internal void ExecuteImportCommand(Object obj)
+        {
+            var plugin = obj as IImportPlugin;
+
+            if (plugin == null)
+                return;
+
+            openFileService.FileName = "";
+            openFileService.Filter = plugin.Filter;
+
+            var result = openFileService.ShowDialog(null);
+            if (result.HasValue && result.Value == true)
+            {
+                string savedFileName = openFileService.FileName;
+
+                var visuals = plugin.Import(extensionManager.ShapePlugins, savedFileName);
+
+                if (visuals == null)
+                    return;
+
+                AddVisual(visuals);
+            }
+        }
+
+        internal void ExecuteOpenExtensionGalleryCommand(Object obj)
+        {
+            var viewModel = new ExtensionManagerViewModel(extensionManager);
+
+            visualizerService.ShowDialog("ExtensionManagerView", viewModel);
+        }
+
+        internal void ExecuteOpenSettingsCommand(Object obj)
+        {
+            var viewModel = new SettingsViewModel(settingsManager);
+
+            visualizerService.ShowDialog("SettingsView", viewModel);
+        }
+
+        internal void ExecuteToggleShowcaseCommand(Object obj)
+        {
+            SelectedVisual = null;
+
+            if (!showcaseActive)
+            {
+                Model.Remove(gridLines);
+                Model.Remove(ground);
+            }
+            else
+            {
+                Model.Add(gridLines);
+                Model.Add(ground);
+            }
+
+            showcaseActive = !showcaseActive;
+
+            //var a1 = new Point3DAnimation(helixView.Camera.Position, newPosition,
+            //        new Duration(TimeSpan.FromMilliseconds(animationTime))) { AccelerationRatio = 0.3, DecelerationRatio = 0.5, FillBehavior = FillBehavior.Stop };
+            //camera.BeginAnimation(ProjectionCamera.PositionProperty, a1);
+
+            //var a2 = new Vector3DAnimation(fromDirection, newDirection,
+            //                               new Duration(TimeSpan.FromMilliseconds(animationTime))) { AccelerationRatio = 0.3, DecelerationRatio = 0.5, FillBehavior = FillBehavior.Stop };
+            //camera.BeginAnimation(ProjectionCamera.LookDirectionProperty, a2);
+
+            //var a3 = new Vector3DAnimation(fromUpDirection, newUpDirection,
+            //                               new Duration(TimeSpan.FromMilliseconds(animationTime))) { AccelerationRatio = 0.3, DecelerationRatio = 0.5, FillBehavior = FillBehavior.Stop };
+            //camera.BeginAnimation(ProjectionCamera.UpDirectionProperty, a3);
+
+            helixView.InfiniteSpin = showcaseActive;
+            helixView.CameraController.SpinCamera(new Vector(75, 10));
+
+
+        }
+        #endregion
+
+        #region Global
+        void ExecuteMouseButtonUpCommand(Object obj)
+        {
+            var args = obj as EventToCommandArgs;
+            //HelixToolkit.HelixView3D helixView = args.Sender as HelixToolkit.HelixView3D;
+
+            if (args == null || helixView == null)
+                return;
+
+            var mouseArgs = args.EventArgs as MouseButtonEventArgs;
+
+            if (mouseArgs == null)
+                return;
+
+            hitTestManager.MouseButtonUp(mouseArgs);
+        }
+
+        void ExecuteMouseMoveCommand(Object obj)
+        {
+            //hitTestManager.MouseMoved();
+        }
+
+        internal void ExecuteMouseDownCommand(Object obj)
+        {
+            helixView.Focus();
+            
+            var args = obj as EventToCommandArgs;
+            //HelixToolkit.HelixView3D helixView = args.Sender as HelixToolkit.HelixView3D;
+
+            if (args == null || helixView == null)
+                return;
+
+            var mouseArgs = args.EventArgs as MouseButtonEventArgs;
+
+            if (mouseArgs == null)
+                return;
+
+            hitTestManager.HitTest(mouseArgs, helixView);
+        }
+
+        internal void ExecuteKeyUpCommand(Object obj)
+        {
+            var commandArgs = obj as EventToCommandArgs;
+
+            if (commandArgs == null || (commandArgs.CommandParameter as bool?).HasValue && (commandArgs.CommandParameter as bool?).Value)
+                return;
+
+            var keyEventArgs = commandArgs.EventArgs as KeyEventArgs;
+
+            if (keyEventArgs == null)
+                return;
+
+            if (keyEventArgs.Key == Key.Delete)
+            {
+                if (Keyboard.Modifiers == ModifierKeys.Shift)
+                {
+                    ClearModel();
+                }
+                else if (SelectedVisual != null)
+                {
+                    var selectedVisual = SelectedVisual;
+
+                    Model.Remove((Visual3D)selectedVisual);
+
+                    if (ModelTreeTreeView.SelectedItem == selectedVisual)
+                        ModelTreeTreeView.SetSelectedItem(null);
+
+                    TechneModel.Remove(selectedVisual);
+                    SelectedVisual = null;
+                }
+            }
+            else if (keyEventArgs.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                ExecuteOpenCommand(null);
+            }
+            else if (keyEventArgs.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                ExecuteSaveCommand(null);
+            }
+            else if (keyEventArgs.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                ExecuteExportCommand(null);
+            }
+            else if (keyEventArgs.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                //var amI = IsSerializable(SelectedVisual);
+                copiedModel = selectedModel;
+            }
+            else if (keyEventArgs.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                historyManager.UndoAction();
+            }
+            else if (keyEventArgs.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                historyManager.RedoAction();
+            }
+            else if (keyEventArgs.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                AddShape("D9E621F7-957F-4B77-B1AE-20DCD0DA7751".ToLower());
+            }
+            else if (keyEventArgs.Key == Key.A && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                SelectAll();
+            }
+            else if (keyEventArgs.Key == Key.Z)
+            {
+                FocusSelectedVisual();
+            }
+            else if (keyEventArgs.Key == Key.PageDown)
+            {
+                SelectedIndex++;
+            }
+            else if (keyEventArgs.Key == Key.PageUp)
+            {
+                SelectedIndex--;
+            }
+            else if (keyEventArgs.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control || Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                if (copiedModel == null)
+                    return;
+
+                var collection = copiedModel as TechneVisualCollection;
+                ITechneVisual visual = null;
+
+                if (collection == null)
+                {
+                    visual = CloneVisual(copiedModel);
+                }
+                else
+                {
+                    visual = new TechneVisualCollection();
+                    var children = collection.Children.ToList();
+
+                    foreach (var item in children)
+                    {
+                        var clone = CloneVisual((ITechneVisual)item);
+
+                        if (clone == null)
+                            continue;
+
+                        clone.Position = ((ITechneVisual)item).Position - collection.Position;
+                        clone.Offset = ((ITechneVisual)item).Offset - collection.Offset;
+                        ((TechneVisualCollection)visual).Children.Add((Visual3D)clone);
+                    }
+                }
+
+                if (visual != null)
+                    AddVisual(visual);
+            }
+            else if (keyEventArgs.Key == Key.OemTilde)
+            {
+                ExecuteOpenConsoleCommand(null);
+            }
+        }
+
+        internal void ExecuteAnimateCommand(Object obj)
+        {
+            //myStoryboard = new Storyboard();
+            //myStoryboard.Children.Add(myDoubleAnimation);
+            //int i = 1;
+
+            //foreach (var item in Model.Where(x => x is ITechneVisual && (x as ITechneVisual).Name.StartsWith("leg")).ToList())
+            //{
+            //    Rotation3DAnimation myDoubleAnimation = new Rotation3DAnimation();
+
+            //    if (i % 2 == 0)
+            //    {
+            //        myDoubleAnimation.From = new AxisAngleRotation3D(new Vector3D(1, 0, 0), -45);
+            //        myDoubleAnimation.To = new AxisAngleRotation3D(new Vector3D(1, 0, 0), 45);
+            //    }
+            //    else
+            //    {
+            //        myDoubleAnimation.From = new AxisAngleRotation3D(new Vector3D(1, 0, 0), 45);
+            //        myDoubleAnimation.To = new AxisAngleRotation3D(new Vector3D(1, 0, 0), -45);
+            //    }
+
+            //    i++;
+
+            //    myDoubleAnimation.Duration = new Duration(TimeSpan.FromSeconds(0.4));
+            //    myDoubleAnimation.AutoReverse = true;
+            //    myDoubleAnimation.RepeatBehavior = RepeatBehavior.Forever;
+
+            //    RotateTransform3D rt = new RotateTransform3D();
+            //    rt.CenterX = (item as ITechneVisual).Position.X;
+            //    rt.CenterY = (item as ITechneVisual).Position.Y;
+            //    rt.CenterZ = (item as ITechneVisual).Position.Z;
+            //    item.Transform = rt;
+
+            //    rt.BeginAnimation(RotateTransform3D.RotationProperty, myDoubleAnimation);
+            //}
+
+
+            //DeobfuscatedImporter import = new DeobfuscatedImporter("");
+            //var result = import.Parse(extensionManager.ShapePlugins);
+
+            //foreach (var item in result.Values)
+            //{
+            //    AddVisual(item);
+            //}
+        }
+        #endregion
+
+        #endregion
+
+        #region Debug methods
+        private static bool IsSerializable(object obj)
+        {
+            System.IO.MemoryStream mem = new System.IO.MemoryStream();
+            System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bin = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            try
+            {
+                bin.Serialize(mem, obj);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Your object cannot be serialized." +
+                                 " The reason is: " + ex.ToString());
+                return false;
+            }
+        }
+        #endregion
+    }
+}

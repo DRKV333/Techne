@@ -1,0 +1,8 @@
+syntax: glob
+**/obj/**
+**/bin/**
+**.pfx
+Modeler/Cinch/CinchV2/BusinessObjects/Validator.cs
+**/.svn/**
+**.suo
+**.user

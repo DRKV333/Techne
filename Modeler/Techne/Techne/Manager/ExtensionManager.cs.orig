@@ -1,0 +1,677 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.Composition;
+using System.ComponentModel.Composition.Hosting;
+using System.IO;
+using System.Reflection;
+using System.Windows.Documents;
+using Cinch;
+using IronPython.Hosting;
+using IronPython.Runtime;
+using Microsoft.Scripting.Hosting;
+using Techne.Model;
+using System.Linq;
+using Techne.Plugins.Attributes;
+using Techne.Plugins.Interfaces;
+using Microsoft.Windows.Controls;
+using System.Xml.Linq;
+
+namespace Techne
+{
+    class ExtensionManager
+    {
+        #region Private Fields
+
+        private string pluginPath;
+        private MainWindowViewModel mainWindowViewModel;
+
+        #region Python Environment
+        private ScriptEngine pythonEngine = null;
+        private ScriptRuntime pythonRuntime = null;
+        private ScriptScope pythonScope = null;
+        #endregion
+        #region MEF stuff
+        private AggregateCatalog catalog;
+        private CompositionContainer container;
+        private Dictionary<string, AssemblyCatalog> assemblies;
+        #endregion
+
+        #region Plugins
+        /// <summary>
+        /// Holds the Plugins, matched to 
+        /// </summary>
+        private Dictionary<string, PluginInfo> localPlugins = new Dictionary<string,PluginInfo>();
+        private Dictionary<string, IShapePlugin> shapes = new Dictionary<string, IShapePlugin>();
+        private Dictionary<string, PluginInfo> loadedPluginsInfo = new Dictionary<string, PluginInfo>();
+        private Dictionary<string, PluginInfo> offlinePluginsInfo = new Dictionary<string, PluginInfo>();
+        private Dictionary<string, ITechnePlugin> loadedplugins = new Dictionary<string, ITechnePlugin>();
+        #endregion
+        #endregion
+
+        #region Public Properties
+
+        public String PluginPath
+        {
+            get { return pluginPath; }
+            set { pluginPath = value; }
+        }
+
+        #region Plugins
+        public Dictionary<string, IShapePlugin> ShapePlugins
+        {
+            get { return shapes; }
+            set { shapes = value; }
+        }
+
+        public Dictionary<string, PluginInfo> LoadedPluginsInfo
+        {
+            get { return loadedPluginsInfo; }
+        }
+
+        public Dictionary<string, PluginInfo> LocalPluginsInfo
+        {
+            get { return localPlugins; }
+        }
+
+        public Dictionary<string, PluginInfo> OfflinePluginsInfo
+        {
+            get { return offlinePluginsInfo; }
+        }
+
+        public Dictionary<string, ITechnePlugin> LoadedPlugins
+        {
+            get { return loadedplugins; }
+        }
+        #endregion
+        #region Menu Items
+        public DispatcherNotifiedObservableCollection<ShapeToolItemViewModel> ShapeToolBarItems
+        {
+            get;
+            private set;
+        }
+        public DispatcherNotifiedObservableCollection<ToolToolItemViewModel> ToolToolBarItems
+        {
+            get;
+            private set;
+        }
+        public DispatcherNotifiedObservableCollection<ImportPluginMenuItemViewModel> ImportPluginMenuItems
+        {
+            get;
+            private set;
+        }
+        public DispatcherNotifiedObservableCollection<ExportPluginMenuItemViewModel> ExportPluginMenuItems
+        {
+            get;
+            private set;
+        }
+        #endregion
+        #endregion
+
+        #region Constructor
+        public ExtensionManager(MainWindowViewModel mainWindowViewModel)
+        {
+            // TODO: Complete member initialization
+            this.mainWindowViewModel = mainWindowViewModel;
+
+            pythonEngine = Python.CreateEngine();
+            pythonRuntime = pythonEngine.Runtime;
+            pythonScope = pythonRuntime.CreateScope();
+
+            ShapeToolBarItems = new DispatcherNotifiedObservableCollection<ShapeToolItemViewModel>();
+            ToolToolBarItems = new DispatcherNotifiedObservableCollection<ToolToolItemViewModel>();
+            ImportPluginMenuItems = new DispatcherNotifiedObservableCollection<ImportPluginMenuItemViewModel>();
+        }
+        #endregion
+
+        #region Plugin Handler
+
+        #region Python stuff
+        private void LoadPytonPlugins()
+        {
+            string[] pluginFiles = Directory.GetFiles(pluginPath, "*.py");
+
+            foreach (var file in pluginFiles)
+            {
+                try
+                {
+                    AddPythonScript(file);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private void AddPythonScript(string fileName)
+        {
+            var assemblyName = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+            assemblyName = assemblyName.Substring(0, assemblyName.LastIndexOf('.')).TrimEnd('.');
+
+            AddPythonScript(assemblyName, fileName);
+        }
+
+        private void AddPythonScript(string assemblyName, string fileName)
+        {
+            if (!File.Exists(fileName))
+                throw new ArgumentException("script not found");
+
+            if (!IsActive(fileName))
+                return;
+
+            var source = pythonEngine.CreateScriptSourceFromString(File.ReadAllText(fileName)).Execute<IPythonPlugin>(pythonScope);
+
+            AddPythonScript(source, fileName);
+        }
+
+        private void AddPythonScript(IPythonPlugin source, string fileName)
+        {
+            try
+            {
+                switch (source.PluginType)
+                {
+                    case Techne.Plugins.PluginType.Tool:
+                        var toolPlugin = source as IToolPlugin;
+
+                        if (toolPlugin == null)
+                            return;
+
+                        loadedplugins.Add(toolPlugin.Guid.ToString(), toolPlugin);
+
+                        AddToolPlugin(toolPlugin, true);
+                        break;
+                    case Techne.Plugins.PluginType.Shape:
+                        var shapePlugin = source as IShapePlugin;
+
+                        if (shapePlugin == null)
+                            return;
+
+                        AddShapePlugin(shapePlugin);
+                        break;
+                    case Techne.Plugins.PluginType.Exporter:
+                        var exportPlugin = source as IExportPlugin;
+
+                        if (exportPlugin == null)
+                            return;
+
+                        loadedplugins.Add(exportPlugin.Guid.ToString(), exportPlugin);
+
+                        AddExportPlugin(exportPlugin);
+
+                        break;
+                    case Techne.Plugins.PluginType.Importer:
+                        var importPlugin = source as IImportPlugin;
+
+                        if (importPlugin == null)
+                            return;
+
+                        loadedplugins.Add(importPlugin.Guid.ToString(), importPlugin);
+
+                        AddImportPlugin(importPlugin);
+
+                        break;
+                    default:
+                        break;
+                }
+
+                var info = new PluginInfo(source) { Location = fileName, Activated = true };
+
+                if (!localPlugins.ContainsKey(info.GUID))
+                {
+                    localPlugins.Add(info.GUID, info);
+                    loadedPluginsInfo.Add(info.GUID, info);
+                }
+                else
+                {
+                    loadedPluginsInfo.Add(info.GUID, localPlugins[info.GUID]);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        #endregion
+
+        #region .net stuff
+        private void LoadPlugins()
+        {
+            string[] pluginFiles = Directory.GetFiles(pluginPath, "*.dll");
+
+            foreach (var file in pluginFiles)
+            {
+                try
+                {
+                    AddAssembly(file);
+                }
+                catch
+                {
+                    throw;
+                }
+            }
+
+            try
+            {
+                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+                UriBuilder uri = new UriBuilder(codeBase);
+                string path = Uri.UnescapeDataString(uri.Path);
+
+                //try
+                //{
+                //    if (System.Deployment.Application.ApplicationDeployment.IsNetworkDeployed)
+                //        path = System.Deployment.Application.ApplicationDeployment.CurrentDeployment. + @"\Techne.exe";
+                //}
+                //finally
+                //{
+                //    if (String.IsNullOrEmpty(path))
+                //        path = ".\\Techne.exe";
+                //}
+
+                AddAssembly(path);
+            }
+            catch
+            {
+            }
+        }
+
+        private void AddAssembly(string fileName)
+        {
+            var assemblyName = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+            assemblyName = assemblyName.Substring(0, assemblyName.LastIndexOf('.')).TrimEnd('.');
+
+            AddAssembly(assemblyName, fileName);
+        }
+
+        private void AddAssembly(string name, string fileName)
+        {
+            if (!File.Exists(fileName))
+                throw new ArgumentException("plugin not found");
+
+            if (!IsActive(fileName))
+                return;
+
+            var assembly = Assembly.LoadFrom(fileName);
+
+            assemblies.Add(name, new AssemblyCatalog(Assembly.LoadFrom(fileName)));
+
+            AddPluginInformation(name, assembly);
+        }
+
+        private bool IsActive(string fileName)
+        {
+
+            var plugin = localPlugins.Where(x => String.Compare(Path.GetFullPath(x.Value.Location).TrimEnd('\\'), Path.GetFullPath(fileName).TrimEnd('\\'), StringComparison.InvariantCultureIgnoreCase) == 0).FirstOrDefault();
+
+            //if (String.Compare(
+            //        Path.GetFullPath(plugin.Location).TrimEnd('\\'),
+            //        Path.GetFullPath(fileName).TrimEnd('\\'),
+            //        StringComparison.InvariantCultureIgnoreCase) > 0)
+            if (plugin.Value.Location != null)
+            {
+                return plugin.Value.Activated;
+            }
+
+            return true;
+        }
+
+        private void AddPluginInformation(string name, Assembly assembly)
+        {
+            List<PluginExportAttribute> attributes = GetPluginAttributes(assembly);
+
+            if (loadedPluginsInfo.ContainsKey(name))
+            {
+                //todo: can I has code?
+                return;
+            }
+
+            foreach (var item in attributes)
+            {
+                if (!localPlugins.ContainsKey(item.Guid))
+                {
+                    var info = new PluginInfo(item)
+                    {
+                        Location = assembly.Location,
+                        Activated = true
+                    };
+                    localPlugins.Add(info.GUID, info);
+                    loadedPluginsInfo.Add(item.Guid, info);
+                }
+                else
+                {
+                    loadedPluginsInfo.Add(item.Guid, localPlugins[item.Guid]);
+                }
+            }
+        }
+        #endregion
+
+        private void PingPlugins()
+        {
+            foreach (var item in loadedplugins)
+            {
+                try
+                {
+                    item.Value.OnLoad();
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var item in mainWindowViewModel.ShapePlugins)
+            {
+                try
+                {
+                    item.OnLoad();
+                    loadedplugins.Add(item.Guid.ToString(), item);
+                    //loadedPluginsInfo[item.Guid.ToString()].Type = Plugins.PluginType.Shape;
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var item in mainWindowViewModel.ToolPlugins)
+            {
+                try
+                {
+                    item.OnLoad();
+                    loadedplugins.Add(item.Guid.ToString(), item);
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var item in mainWindowViewModel.ExportPlugins)
+            {
+                try
+                {
+                    item.OnLoad();
+                    loadedplugins.Add(item.Guid.ToString(), item);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private void CheckPaths()
+        {
+            if (!Directory.Exists(pluginPath))
+            {
+                Directory.CreateDirectory(pluginPath);
+            }
+
+            var path = Path.Combine(pluginPath, "plugins.xml");
+            if (!File.Exists(path))
+            {
+                using (var x = File.Create(path))
+                {
+                }
+            }
+        }
+
+        public void ReloadPlugins()
+        {
+            assemblies = new Dictionary<string, AssemblyCatalog>();
+
+            LoadPlugins();
+            LoadPytonPlugins();
+
+            catalog = new AggregateCatalog();
+
+            foreach (var assembly in assemblies.Values)
+            {
+                catalog.Catalogs.Add(assembly);
+            }
+
+            container = new CompositionContainer(catalog);
+            container.ComposeParts(this);
+        }
+
+        private List<PluginExportAttribute> GetPluginAttributes(Assembly assembly)
+        {
+            List<PluginExportAttribute> result = new List<PluginExportAttribute>();
+
+            foreach (Type type in assembly.GetTypes())
+            {
+                var attributes = (PluginExportAttribute[])type.GetCustomAttributes(typeof(PluginExportAttribute), true);
+
+                foreach (var item in attributes)
+                {
+                    result.Add(item);
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void LoadStoredPlugins()
+        {
+            var path = Path.Combine(pluginPath, "plugins.xml");
+
+            try
+            {
+                localPlugins = GetStoredPluginInformation(path);
+            }
+            catch
+            {
+            }
+
+            if (localPlugins == null)
+                localPlugins = new Dictionary<string, PluginInfo>();
+        }
+
+        private Dictionary<string, PluginInfo> GetStoredPluginInformation(string path)
+        {
+            XDocument doc = XDocument.Load(path);
+
+            var plugins = (from plugin in doc.Descendants("PluginInfo")
+                           select new PluginInfo()
+                           {
+                               PluginName = (from r in plugin.Descendants("PluginName")
+                                             select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }),
+                               Author = (from r in plugin.Descendants("Author")
+                                         select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }),
+                               Description = (from r in plugin.Descendants("Author")
+                                              select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }),
+                               Version = (from r in plugin.Descendants("Version")
+                                          select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }),
+                               Activated = (bool)Boolean.Parse((from r in plugin.Descendants("Activated")
+                                                                select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' })),
+                               GUID = (from r in plugin.Descendants("GUID")
+                                       select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }),
+                               Location = (from r in plugin.Descendants("Location")
+                                           select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }),
+                               Type = (Techne.Plugins.PluginType)Enum.Parse(typeof(Techne.Plugins.PluginType), (from r in plugin.Descendants("Type")
+                                                                                                                select r.Value).FirstOrDefault().Trim(new char[] { ' ', '\r', '\n', '\t' }), true),
+                               Loaded = false
+                           }).ToDictionary(x => x.GUID, x => x);
+
+            return plugins;
+        }
+
+        private void InitializeActivePlugins()
+        {
+            //initialize catalog
+            catalog = new AggregateCatalog();
+            //LoadPlugins();
+            ReloadPlugins();
+
+            container = new CompositionContainer(catalog);
+            container.ComposeParts(mainWindowViewModel);
+
+            PingPlugins();
+
+            GetShapes();
+            GetExporter();
+            GetImporter();
+            GetTools();
+        }
+
+        private void GetImporter()
+        {
+            if (ImportPluginMenuItems == null)
+                ImportPluginMenuItems = new DispatcherNotifiedObservableCollection<ImportPluginMenuItemViewModel>();
+
+            foreach (var item in mainWindowViewModel.ImportPlugins)
+            {
+                AddImportPlugin(item);
+            }
+        }
+
+        private void GetShapes()
+        {
+            if (ShapeToolBarItems == null)
+                ShapeToolBarItems = new DispatcherNotifiedObservableCollection<ShapeToolItemViewModel>();
+
+            foreach (var item in mainWindowViewModel.ShapePlugins)
+            {
+
+                AddShapePlugin(item);
+            }
+        }
+
+        private void AddShapePlugin(IShapePlugin item)
+        {
+            var command = new SimpleCommand<object, Object>(x => mainWindowViewModel.AddNewShapeCommand(item.Guid));
+
+            var shapeMenuItem = new ShapeToolItemViewModel(item.AltText, command)
+            {
+                Icon = item.Icon
+            };
+            ShapeToolBarItems.Add(shapeMenuItem);
+            shapes.Add(item.Guid.ToString(), item);
+        }
+
+        private void AddToolPlugin(IToolPlugin toolPlugin, bool isPython = false)
+        {
+            var entry = new ToolToolItemViewModel(toolPlugin.Guid.ToString().ToLower(), toolPlugin);
+
+            if (isPython)
+            {
+                pythonScope.SetVariable("mainWindowViewModel", mainWindowViewModel);
+                pythonScope.SetVariable("Model", mainWindowViewModel.Model);
+                pythonScope.SetVariable("TechneModel", mainWindowViewModel.TechneModel);
+                pythonScope.SetVariable("SelectedVisual", mainWindowViewModel.SelectedVisualVM.SelectedVisual);
+
+                entry.Command = new SimpleCommand<object, object>(x => toolPlugin.OnClick());
+            }
+            else
+            {
+                entry.Command = new SimpleCommand<object, object>(x => toolPlugin.OnClick());
+            }
+            
+            ToolToolBarItems.Add(entry);
+        }
+        private void AddImportPlugin(IImportPlugin importPlugin)
+        {
+            SimpleCommand<object, object> importCommand = new SimpleCommand<object, object>(x => mainWindowViewModel.ExecuteImportCommand(importPlugin));
+            ImportPluginMenuItems.Add(new ImportPluginMenuItemViewModel() { Header = importPlugin.MenuHeader, Command = importCommand });
+        }
+        private void AddExportPlugin(IExportPlugin exportPlugin)
+        {
+
+            SimpleCommand<object, object> exportCommand = new SimpleCommand<object, object>(x => mainWindowViewModel.ExecuteExportCommand(exportPlugin));
+            ExportPluginMenuItems.Add(new ExportPluginMenuItemViewModel() { Header = exportPlugin.MenuHeader, Command = exportCommand });
+        }
+
+        private void GetExporter()
+        {
+            if (ExportPluginMenuItems == null)
+                ExportPluginMenuItems = new DispatcherNotifiedObservableCollection<ExportPluginMenuItemViewModel>();
+
+            foreach (var item in mainWindowViewModel.ExportPlugins)
+            {
+                AddExportPlugin(item);
+            }
+        }
+
+        private void GetTools()
+        {
+
+        }
+
+        private void UpdatePluginXML()
+        {
+            if (File.Exists(pluginPath + "\\plugins.xml"))
+                File.Delete(pluginPath + "\\plugins.xml");
+
+            using (Stream s = File.Create(pluginPath + "\\plugins.xml"))
+            {
+                var valueList = localPlugins.Values.ToList<PluginInfo>();
+                System.Xml.Serialization.XmlSerializer x = new System.Xml.Serialization.XmlSerializer(valueList.GetType());
+                x.Serialize(s, valueList);
+            }
+        }
+        #endregion
+
+        #region Internal Methods
+        internal void Initialize()
+        {
+            //Check if plugin path is valid
+            CheckPaths();
+
+            LoadStoredPlugins();
+
+            InitializeActivePlugins();
+        }
+
+        internal void TogglePlugin(string pluginGuid)
+        {
+            var plugin = localPlugins[pluginGuid];
+
+            //if (File.Exists(plugin.Location))
+            //{
+            //    if (plugin.Activated)
+            //    {
+            //        string newLocation = plugin.Location + ".bak";
+            //        File.Move(plugin.Location, newLocation);
+            //    }
+            //    else
+            //    {
+            //        string newLocation = plugin.Location.Substring(0, plugin.Location.Length - 4);
+
+            //        File.Move(plugin.Location, newLocation);
+            //    }
+            //}
+
+            plugin.Activated = !plugin.Activated;
+
+            if (loadedPluginsInfo.ContainsKey(pluginGuid))
+                loadedPluginsInfo[pluginGuid] = plugin;
+
+            localPlugins[pluginGuid] = plugin;
+
+            UpdatePluginXML();
+        }
+
+        internal void DeletePlugin(string pluginGuid)
+        {
+            var plugin = loadedPluginsInfo[pluginGuid];
+
+            if (File.Exists(plugin.Location))
+            {
+                File.Delete(plugin.Location);
+            }
+
+            if (localPlugins.ContainsKey(pluginGuid))
+            {
+                localPlugins.Remove(pluginGuid);
+            }
+
+            if (loadedPluginsInfo.ContainsKey(pluginGuid))
+            {
+                loadedplugins.Remove(pluginGuid);
+            }
+
+            UpdatePluginXML();
+        }
+
+     
+        #endregion
+    }
+}

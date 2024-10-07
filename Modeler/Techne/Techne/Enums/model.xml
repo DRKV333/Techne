@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-16"?>
+<Techne Version="2.0">
+  <Author>ZeuX</Author>
+  <Description />
+  <PreviewImage />
+  <DateCreated>01/01/0001 00:00:00</DateCreated>
+  <Name />
+  <Models>
+    <Model texture="Modeltexture.png">
+      <BaseClass />
+      <Name>Model</Name>
+      <Geometry>
+        <GlScale>1,1,1</GlScale>
+        <Shape type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" name="head">
+          <Scale>0</Scale>
+          <Offset>-4,-8,-4</Offset>
+          <TextureOffset>0,0</TextureOffset>
+          <Rotation>0,0,0</Rotation>
+          <Size>8,8,8</Size>
+          <Position>0,4,0</Position>
+          <IsMirrored>False</IsMirrored>
+          <IsDecorative>False</IsDecorative>
+        </Shape>
+        <Shape type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" name="body">
+          <Scale>0</Scale>
+          <Offset>-4,0,-2</Offset>
+          <TextureOffset>16,16</TextureOffset>
+          <Rotation>0,0,0</Rotation>
+          <Size>8,12,4</Size>
+          <Position>0,4,0</Position>
+          <IsMirrored>False</IsMirrored>
+          <IsDecorative>False</IsDecorative>
+        </Shape>
+        <Shape type="9ec93754-b48d-4c70-ae4e-84d81ae55396" name="legs">
+          <Shape type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" name="leg1">
+            <Scale>0</Scale>
+            <Offset>0,0,-2</Offset>
+            <TextureOffset>0,16</TextureOffset>
+            <Rotation>0,0,0</Rotation>
+            <Size>4,6,4</Size>
+            <Position>-4,16,4</Position>
+            <IsMirrored>False</IsMirrored>
+            <IsDecorative>False</IsDecorative>
+          </Shape>
+          <Shape type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" name="leg4">
+            <Scale>0</Scale>
+            <Offset>-2,0,-2</Offset>
+            <TextureOffset>0,16</TextureOffset>
+            <Rotation>0,0,0</Rotation>
+            <Size>4,6,4</Size>
+            <Position>2,16,-4</Position>
+            <IsMirrored>False</IsMirrored>
+            <IsDecorative>False</IsDecorative>
+          </Shape>
+          <Shape type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" name="leg3">
+            <Scale>0</Scale>
+            <Offset>-2,0,-2</Offset>
+            <TextureOffset>0,16</TextureOffset>
+            <Rotation>0,0,0</Rotation>
+            <Size>4,6,4</Size>
+            <Position>-2,16,-4</Position>
+            <IsMirrored>False</IsMirrored>
+            <IsDecorative>False</IsDecorative>
+          </Shape>
+          <Shape type="d9e621f7-957f-4b77-b1ae-20dcd0da7751" name="leg2">
+            <Scale>0</Scale>
+            <Offset>-2,0,-2</Offset>
+            <TextureOffset>0,16</TextureOffset>
+            <Rotation>0,0,0</Rotation>
+            <Size>4,6,4</Size>
+            <Position>2,16,4</Position>
+            <IsMirrored>False</IsMirrored>
+            <IsDecorative>False</IsDecorative>
+          </Shape>
+        </Shape>
+      </Geometry>
+    </Model>
+  </Models>
+</Techne>

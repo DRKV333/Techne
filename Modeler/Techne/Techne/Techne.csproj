@@ -1,0 +1,716 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{95B8E44C-D43B-4F17-9AF7-E88A0A9311EB}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Techne</RootNamespace>
+    <AssemblyName>Techne</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <IsWebBootstrapper>true</IsWebBootstrapper>
+    <Utf8Output>true</Utf8Output>
+    <ExpressionBlendVersion>4.0.30422.0</ExpressionBlendVersion>
+    <PublishUrl>D:\System\Users\Alex\My Dropbox\Public\Minecraft\Techne\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Web</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <InstallUrl>http://dl.dropbox.com/u/15368593/Minecraft/Techne/</InstallUrl>
+    <ProductName>Techne</ProductName>
+    <PublisherName>ZeuX and r4wk</PublisherName>
+    <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
+    <WebPage>publish.htm</WebPage>
+    <ApplicationRevision>16</ApplicationRevision>
+    <ApplicationVersion>1.3.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Resources\Logo.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>32D7C421768448C31B034289246CE74425FDD6AB</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>Techne_TemporaryKey.pfx</ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>false</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AvalonDock, Version=1.3.3571.0, Culture=neutral, PublicKeyToken=85a1e0ada7ec13e4, processorArchitecture=MSIL">
+      <HintPath>..\..\..\Libraries\AvalonDock.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="AvalonDock.Themes, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\Libraries\AvalonDock.Themes.dll</HintPath>
+    </Reference>
+    <Reference Include="Ionic.Zip">
+      <HintPath>..\..\..\Libraries\Ionic.Zip.dll</HintPath>
+    </Reference>
+    <Reference Include="MEFedMVVM.WPF, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b6db3dc4f5fba1e3, processorArchitecture=MSIL">
+      <HintPath>..\..\..\Libraries\Cinch\MEFedMVVM.WPF.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Expression.Interactions, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Libraries\Microsoft.Expression.Interactions.dll</HintPath>
+    </Reference>
+    <Reference Include="RazorEngine">
+      <HintPath>..\packages\RazorEngine.2.1\lib\.NetFramework 4.0\RazorEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Web.Razor, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\RazorEngine.2.1\lib\.NetFramework 4.0\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Libraries\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="Controls\AnimationAxisControl.xaml.cs">
+      <DependentUpon>AnimationAxisControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\ModelTreeViewControl.xaml.cs">
+      <DependentUpon>ModelTreeViewControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PythonConsole.xaml.cs">
+      <DependentUpon>PythonConsole.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\ResizingAdorner.cs" />
+    <Compile Include="Controls\SelectedVisualControl.xaml.cs">
+      <DependentUpon>SelectedVisualControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\TechneTreeView.cs" />
+    <Compile Include="DeobfuscatedImporter.cs" />
+    <Compile Include="Exporter\Java\ExporterDefinition.cs" />
+    <Compile Include="Exporter\Java\IndendingStringBuilder.cs" />
+    <Compile Include="Exporter\Java\JavaExporter.cs" />
+    <Compile Include="Exporter\Java\MemberDescriptor.cs" />
+    <Compile Include="Exporter\Java\TypeToJavaHelper.cs" />
+    <Compile Include="Exporter\Razor\RazorExporter.cs" />
+    <Compile Include="Exporter\Texturemap\TexturemapExproterPlugin.cs" />
+    <Compile Include="Helper\EnumExtensions.cs" />
+    <Compile Include="Helper\ExceptionElement.cs" />
+    <Compile Include="Helper\IEnumerableExtension.cs" />
+    <Compile Include="Helper\ProgressStream.cs" />
+    <Compile Include="Helper\TreeViewExtensions.cs" />
+    <Compile Include="Helper\YamlDoc.cs" />
+    <Compile Include="Manager\Importer\DecorationImporter.cs" />
+    <Compile Include="Manager\Importer\FixedImporter.cs" />
+    <Compile Include="Manager\BackupManager.cs" />
+    <Compile Include="Manager\ExtensionManager.cs" />
+    <Compile Include="Helper\EditableVector.cs" />
+    <Compile Include="Helper\IListExtensions.cs" />
+    <Compile Include="Manager\File\FileManager.cs" />
+    <Compile Include="Manager\File\LegacyTechneImporter.cs" />
+    <Compile Include="Manager\File\TechneXmlImporter.cs" />
+    <Compile Include="Manager\HistoryManager.cs" />
+    <Compile Include="Manager\HittestManager.cs" />
+    <Compile Include="Manager\SettingsManager.cs" />
+    <Compile Include="Manager\TechneStateManager.cs" />
+    <Compile Include="Manager\UpdateManager.cs" />
+    <Compile Include="Models\AnimationDataModel.cs" />
+    <Compile Include="Models\Changelog.cs" />
+    <Compile Include="Models\ChangeLogEntry.cs" />
+    <Compile Include="Models\Enums\EnumAxis.cs" />
+    <Compile Include="Models\Enums\EnumSelectionType.cs" />
+    <Compile Include="Models\Enums\TextureCaptionType.cs" />
+    <Compile Include="Models\SelectedVisualModel.cs" />
+    <Compile Include="Models\Settings\HelixViewSettings.cs" />
+    <Compile Include="Models\Settings\PropertyAttribute.cs" />
+    <Compile Include="Models\Settings\PropertyTabContent.cs" />
+    <Compile Include="Models\Settings\SettingsModelBase.cs" />
+    <Compile Include="Models\Settings\TechneSettings.cs" />
+    <Compile Include="Models\TechneRotation3DAnimation.cs" />
+    <Compile Include="Shapes\Minecraft\Cube\CubeSide.cs" />
+    <Compile Include="Shapes\Minecraft\Cube\TechneBoxVisual3D.cs" />
+    <Compile Include="Shapes\Minecraft\Cube\TechneCubeVisual3DPlugin.cs" />
+    <Compile Include="Shapes\Minecraft\Cube\TextureHelper.cs" />
+    <Compile Include="Shapes\Minecraft\Cube\TextureLength.cs" />
+    <Compile Include="Shapes\Minecraft\Cube\TexturePartMarginConverter.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Cone\TurboModelThingyConeVisual3D.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Cube\TurboModelThingyCubeVisual3D.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Cube\TurboModelThingyCubeVisual3DPlugin.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Cylinder\TurboModelThingyCylinderVisual3D.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Sphere\TurboModelThingySphereVisual3D.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Cone\TurboModelThingyConeShapePlugin.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Cylinder\TurboModelThingyCylinderShapePlugin.cs" />
+    <Compile Include="Shapes\Turbo Model Thingy\Sphere\TurboModelThingySphereShapePlugin.cs" />
+    <Compile Include="ValueConverters\BooleanOrConverter.cs" />
+    <Compile Include="ValueConverters\FontSizeCalculatorBinding.cs" />
+    <Compile Include="ValueConverters\ITechneVisualDataSelector.cs" />
+    <Compile Include="ValueConverters\NullToBoolConverter.cs" />
+    <Compile Include="ValueConverters\PercentageConverter.cs" />
+    <Compile Include="ValueConverters\Transform3DToTransform3DGroupConverter.cs" />
+    <Compile Include="ViewModel\AboutViewModel.cs" />
+    <Compile Include="ViewModel\ChangelogViewModel.cs" />
+    <Compile Include="ViewModel\EditProjectViewModel.cs" />
+    <Compile Include="ViewModel\FeedbackViewModel.cs" />
+    <Compile Include="ViewModel\MainWindowViewModel\Commands.cs" />
+    <Compile Include="ViewModel\MainWindowViewModel\Properties.cs" />
+    <Compile Include="ViewModel\Menus\ExportPluginMenuItem.cs" />
+    <Compile Include="Models\History\HistoryAction.cs" />
+    <Compile Include="Models\History\HistoryUnit.cs" />
+    <Compile Include="Models\SceneryVisual.cs" />
+    <Compile Include="Models\ShapeToolBarItems.cs" />
+    <Compile Include="Models\ShapeToolItem.cs" />
+    <Compile Include="ViewModel\VisualViewModels\ModelTreeItemViewModel.cs" />
+    <Compile Include="ViewModel\VisualViewModels\ModelTreeViewModel.cs" />
+    <Compile Include="Views\AboutView.xaml.cs">
+      <DependentUpon>AboutView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ChangeLogFieldView.xaml.cs">
+      <DependentUpon>ChangeLogFieldView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\EditProjectView.xaml.cs">
+      <DependentUpon>EditProjectView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Visuals\AxisControlVisual3D.cs" />
+    <Compile Include="Models\VectorModel.cs" />
+    <Compile Include="Visuals\TechneVisualCollection.cs" />
+    <Compile Include="Visuals\TechneVisualFolder.cs" />
+    <Compile Include="Visuals\ThreeAxisControlVisual3D.cs" />
+    <Resource Include="licenses.txt" />
+    <Resource Include="LICENSE.txt" />
+    <Content Include="Plugins\Techne.Plugins.Interfaces.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="ValueConverters\DoubleAdderConverter.cs" />
+    <Compile Include="ValueConverters\ScaleConverter.cs" />
+    <Compile Include="ValueConverters\ViewBoxConverter.cs" />
+    <Compile Include="ViewModel\CurrentSaveViewModel.cs" />
+    <Compile Include="ViewModel\Menus\ImportPluginMenuItemViewModel.cs" />
+    <Compile Include="ViewModel\MainWindowViewModel\MainWindowViewModel.cs" />
+    <Compile Include="ViewModel\Menus\ToolToolItemViewModel.cs" />
+    <Compile Include="ViewModel\NewProjectViewModel.cs" />
+    <Compile Include="ViewModel\VisualViewModels\SelectedVisualViewModel.cs" />
+    <Compile Include="ViewModel\Settings\SettingsViewModel.cs" />
+    <Compile Include="ViewModel\TextureViewerViewModel.cs" />
+    <Compile Include="ViewModel\Vector3DEditViewModel.cs" />
+    <Compile Include="ValueConverters\VisualToTechneConverter.cs" />
+    <Compile Include="Views\ChangelogView.xaml.cs">
+      <DependentUpon>ChangelogView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\FeedbackView.xaml.cs">
+      <DependentUpon>FeedbackView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\NewProjectView.xaml.cs">
+      <DependentUpon>NewProjectView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\SettingsView.xaml.cs">
+      <DependentUpon>SettingsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Vector3DEditView.xaml.cs">
+      <DependentUpon>Vector3DEditView.xaml</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="Resources\AddCube.png" />
+    <EmbeddedResource Include="Resources\Cube.png" />
+    <Content Include="Exporter\Templates\AdventureCraft.rtpl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Exporter\Templates\Java.rtpl">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Manager\File\2.2 tcnReader.cs" />
+    <None Include="Exporter\Templates\Java.cshtml" />
+    <None Include="packages.config" />
+    <Resource Include="Resources\donate_button.gif" />
+    <Resource Include="Resources\folder_blue.png" />
+    <Content Include="Resources\Models\ModelChicken.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Models\ModelCow.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Models\ModelCreeper.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Models\ModelEnderman.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Models\ModelPig.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Models\ModelSpider.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\Models\ModelWolf.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Resources\panorama.jpg" />
+    <EmbeddedResource Include="Resources\AddCone.png" />
+    <EmbeddedResource Include="Resources\AddSphere.png" />
+    <EmbeddedResource Include="Resources\AddCylinder.png" />
+    <Content Include="Resources\Models\placeholder.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Resources\piece.png" />
+    <Content Include="Resources\TecheModel.ico" />
+    <SplashScreen Include="Resources\Logo.png" />
+    <Page Include="Controls\AnimationAxisControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Controls\ModelTreeViewControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\PythonConsole.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\SelectedVisualControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="Resources\Simple Styles.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\AboutView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\ChangeLogFieldView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\ChangelogView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\EditProjectView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\FeedbackView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\NewProjectView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\SettingsView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\Vector3DEditView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Resource Include="Resources\ExpressionDark.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="App.config" />
+    <None Include="Properties\app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <AppDesigner Include="Properties\" />
+    <Content Include="Resources\Models\ModelBiped.tcn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Enums\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Libraries\Drag Drop\GongSolutions.Wpf.DragDrop\GongSolutions.Wpf.DragDrop.csproj">
+      <Project>{0c6674cc-6d49-414a-9b41-d4e175028ffb}</Project>
+      <Name>GongSolutions.Wpf.DragDrop</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Libraries\WPF Property Grid\WPGBrushEditor\WPGBrushEditor.csproj">
+      <Project>{E26BC89B-3B66-4E96-8FE2-655BD10CFB1B}</Project>
+      <Name>WPGBrushEditor</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Libraries\WPF Property Grid\WPG\WPG.csproj">
+      <Project>{022EDA6A-0B76-44C3-A530-8312C1B40030}</Project>
+      <Name>WPG</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Libraries\WpfEditableLabelBehavior\EditableBehaviorLibrary\EditableBehaviorLibrary.csproj">
+      <Project>{71311977-4438-4E00-A5FD-F6E2FAC6A7C8}</Project>
+      <Name>EditableBehaviorLibrary</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Cinch\CinchV2.WPF\Cinch.WPF.csproj">
+      <Project>{673879AD-29C1-42B8-9A79-3750418696AB}</Project>
+      <Name>Cinch.WPF</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\HelixToolkit\HelixToolkit.csproj">
+      <Project>{3F3B4548-A9DB-4874-86F7-E7C4FEC8A351}</Project>
+      <Name>HelixToolkit</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\WPFToolkit.Extended\WPFToolkit.Extended.csproj">
+      <Project>{72E591D6-8F83-4D8C-8F67-9C325E623234}</Project>
+      <Name>WPFToolkit.Extended</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Techne.Plugins.Interfaces\Techne.Plugins.csproj">
+      <Project>{56375A61-BD03-42D6-AC7A-C03DB82A14F4}</Project>
+      <Name>Techne.Plugins</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4 Client Profile %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 3.1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\earth.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Logo.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <PublishFile Include="Exporter\Templates\AdventureCraft.rtpl">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Exporter\Templates\Java.rtpl">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Microsoft.Scripting">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>Include</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>Assembly</FileType>
+    </PublishFile>
+    <PublishFile Include="Microsoft.Scripting.Metadata">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>Include</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>Assembly</FileType>
+    </PublishFile>
+    <PublishFile Include="Plugins\Techne.Plugins.FileHandler.Java.dll">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Plugins\Techne.Plugins.FileHandler.Texturemap.dll">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Plugins\Techne.Plugins.FileHandler.TurboModelThingy.dll">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Plugins\Techne.Plugins.Interfaces.dll">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Plugins\Techne.Plugins.Shapes.TechneCubeVisual3D.dll">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Plugins\Techne.Plugins.Shapes.TurboModelThingyCubeVisual3D.dll">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Python\python.py">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>Exclude</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelBiped.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelChicken.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelCow.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelCreeper.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelEnderman.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelPig.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelSpider.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\ModelWolf.tcn">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="Resources\Models\placeholder.txt">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>DataFile</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <FileAssociation Include=".tcn">
+      <Visible>False</Visible>
+      <Description>Techne Model</Description>
+      <Progid>Techne</Progid>
+      <DefaultIcon>Resources\TecheModel.ico</DefaultIcon>
+    </FileAssociation>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

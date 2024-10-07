@@ -1,0 +1,471 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Cinch;
+using Techne.Plugins.Interfaces;
+using System.ComponentModel;
+using System.Windows.Media.Media3D;
+using System.Windows;
+using Techne.Model;
+
+namespace Techne.ViewModel
+{
+    class SelectedVisualViewModel : ViewModelBase
+    {
+        static PropertyChangedEventArgs selectedVisualChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.SelectedVisual);
+        static PropertyChangedEventArgs widthChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.Width);
+        static PropertyChangedEventArgs heightChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.Height);
+        static PropertyChangedEventArgs lengthChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.Length);
+
+        static PropertyChangedEventArgs positionXChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.PositionX);
+        static PropertyChangedEventArgs positionYChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.PositionY);
+        static PropertyChangedEventArgs positionZChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.PositionZ);
+
+        static PropertyChangedEventArgs offsetXChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.OffsetX);
+        static PropertyChangedEventArgs offsetYChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.OffsetY);
+        static PropertyChangedEventArgs offsetZChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.OffsetZ);
+
+        static PropertyChangedEventArgs textureOffsetChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.SelectedVisual.TextureOffset);
+        static PropertyChangedEventArgs textureOffsetXChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.TextureOffsetX);
+        static PropertyChangedEventArgs textureOffsetYChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.TextureOffsetY);
+
+        static PropertyChangedEventArgs elementNameChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.ElementName);
+
+        static PropertyChangedEventArgs rotationXChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.RotationX);
+        static PropertyChangedEventArgs rotationYChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.RotationY);
+        static PropertyChangedEventArgs rotationZChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.RotationZ);
+        static PropertyChangedEventArgs isMirroredChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.IsMirrored);
+        static PropertyChangedEventArgs selectedIndexChangeArgs = ObservableHelper.CreateArgs<SelectedVisualViewModel>(x => x.SelectedIndex);
+
+        private ITechneVisual selectedModel;
+        private MainWindowViewModel mainWindow;
+
+        public ITechneVisual SelectedVisual
+        {
+            get
+            {
+                return selectedModel;
+            }
+            set
+            {
+                if (value != selectedModel)
+                {
+
+                    if (!mainWindow.redoAction)
+                    {
+                        if (!((selectedModel is TechneVisualCollection) && value == null))
+                        {
+                            mainWindow.PropertyChanged(selectedModel, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.SelectedVisual)));
+                        }
+                    }
+
+                    //if (SelectedVisual is TechneVisualCollection)
+                    //{
+                    //    DeselectVisual();
+                    //}
+
+                    if (value == null)
+                        mainWindow.DeselectVisual();
+
+                    selectedModel = value;
+
+                    if (selectedModel != null)
+                        mainWindow.SelectVisual();
+                    else
+                        //gets updated in SelectVisual, so no need to have it for that case
+                        mainWindow.UpdateTextureOverlay();
+
+                    NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                    NotifyPropertyChanged(widthChangeArgs);
+                    NotifyPropertyChanged(heightChangeArgs);
+                    NotifyPropertyChanged(lengthChangeArgs);
+
+                    NotifyPropertyChanged(positionXChangeArgs);
+                    NotifyPropertyChanged(positionYChangeArgs);
+                    NotifyPropertyChanged(positionZChangeArgs);
+
+                    NotifyPropertyChanged(offsetXChangeArgs);
+                    NotifyPropertyChanged(offsetYChangeArgs);
+                    NotifyPropertyChanged(offsetZChangeArgs);
+
+                    NotifyPropertyChanged(textureOffsetXChangeArgs);
+                    NotifyPropertyChanged(textureOffsetYChangeArgs);
+
+                    NotifyPropertyChanged(elementNameChangeArgs);
+
+                    NotifyPropertyChanged(mainWindow.textureViewerChangeArgs);
+                    NotifyPropertyChanged(mainWindow.textureChangeArgs);
+                    NotifyPropertyChanged(mainWindow.textureOverlayChangeArgs);
+
+                    NotifyPropertyChanged(rotationXChangeArgs);
+                    NotifyPropertyChanged(rotationYChangeArgs);
+                    NotifyPropertyChanged(rotationZChangeArgs);
+                    NotifyPropertyChanged(selectedIndexChangeArgs);
+                    NotifyPropertyChanged(isMirroredChangeArgs);
+                }
+            }
+        }
+        #region SelectedVisual
+        public int SelectedIndex
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return -1;
+
+                return mainWindow.TechneModel.IndexOf(SelectedVisual);
+            }
+            set
+            {
+                if (mainWindow.TechneModel.Count == 0)
+                    return;
+
+                if (value >= mainWindow.TechneModel.Count)
+                    value = 0;
+                else if (value < 0)
+                    value = mainWindow.TechneModel.Count - 1;
+
+                mainWindow.ChangeOpacity(1);
+                SelectedVisual = mainWindow.TechneModel[value];
+            }
+        }
+
+        public Double Width
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Width : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(Width, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.Width)));
+                SelectedVisual.Width = value;
+                NotifyPropertyChanged(widthChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Double Height
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Height : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(Height, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.Height)));
+                SelectedVisual.Height = value;
+                NotifyPropertyChanged(heightChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Boolean IsMirrored
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.IsMirrored : false;
+            }
+            set
+            {
+                if (SelectedVisual != null)
+                {
+                    SelectedVisual.IsMirrored = value;
+                }
+            }
+        }
+
+        public Double Length
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Length : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(Length, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.Length)));
+
+                SelectedVisual.Length = value;
+                NotifyPropertyChanged(lengthChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public Double OffsetX
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Offset.X : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(OffsetX, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.OffsetX)));
+
+                SelectedVisual.Offset = new Vector3D(value, SelectedVisual.Offset.Y, SelectedVisual.Offset.Z);
+                NotifyPropertyChanged(offsetXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (mainWindow.settingsManager.TechneSettings.FollowSelectedShape)
+                    mainWindow.FocusSelectedVisual();
+            }
+        }
+
+        public Double OffsetY
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Offset.Y : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(OffsetY, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.OffsetY)));
+
+                SelectedVisual.Offset = new Vector3D(SelectedVisual.Offset.X, value, SelectedVisual.Offset.Z);
+                NotifyPropertyChanged(offsetYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (mainWindow.settingsManager.TechneSettings.FollowSelectedShape)
+                    mainWindow.FocusSelectedVisual();
+            }
+        }
+        public Double OffsetZ
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Offset.Z : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(OffsetZ, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.OffsetZ)));
+
+                SelectedVisual.Offset = new Vector3D(SelectedVisual.Offset.X, SelectedVisual.Offset.Y, value);
+                NotifyPropertyChanged(offsetZChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (mainWindow.settingsManager.TechneSettings.FollowSelectedShape)
+                    mainWindow.FocusSelectedVisual();
+            }
+        }
+
+        public Double PositionX
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Position.X : 0;
+            }
+            set
+            {
+                if (!mainWindow.redoAction)
+                    mainWindow.PropertyChanged(PositionX, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.PositionX)));
+
+                SelectedVisual.Position = new Vector3D(value, SelectedVisual.Position.Y, SelectedVisual.Position.Z);
+                NotifyPropertyChanged(positionXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (mainWindow.settingsManager.TechneSettings.FollowSelectedShape)
+                    mainWindow.FocusSelectedVisual();
+            }
+        }
+        public Double PositionY
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Position.Y : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(PositionY, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.PositionY)));
+
+                SelectedVisual.Position = new Vector3D(SelectedVisual.Position.X, value, SelectedVisual.Position.Z);
+                NotifyPropertyChanged(positionYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (mainWindow.settingsManager.TechneSettings.FollowSelectedShape)
+                    mainWindow.FocusSelectedVisual();
+            }
+        }
+        public Double PositionZ
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Position.Z : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(PositionZ, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.PositionZ)));
+
+                SelectedVisual.Position = new Vector3D(SelectedVisual.Position.X, SelectedVisual.Position.Y, value);
+                NotifyPropertyChanged(positionZChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+                if (mainWindow.settingsManager.TechneSettings.FollowSelectedShape)
+                    mainWindow.FocusSelectedVisual();
+            }
+        }
+
+        public Double TextureOffsetX
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.TextureOffset.X : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(TextureOffsetX, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.TextureOffsetX)));
+
+                SelectedVisual.TextureOffset = new Vector(value, SelectedVisual.TextureOffset.Y);
+                NotifyPropertyChanged(textureOffsetXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        public Double TextureOffsetY
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.TextureOffset.Y : 0;
+            }
+            set
+            {
+                mainWindow.PropertyChanged(TextureOffsetY, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.TextureOffsetY)));
+
+                SelectedVisual.TextureOffset = new Vector(SelectedVisual.TextureOffset.X, value);
+                NotifyPropertyChanged(textureOffsetYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+
+        public String ElementName
+        {
+            get
+            {
+                return SelectedVisual != null ? SelectedVisual.Name : "";
+            }
+            set
+            {
+                if (SelectedVisual == null)
+                    return;
+
+                mainWindow.PropertyChanged(ElementName, value, typeof(SelectedVisualViewModel).GetProperty(ObservableHelper.GetPropertyName<SelectedVisualViewModel>(x => x.ElementName)));
+
+                SelectedVisual.Name = value;
+                NotifyPropertyChanged(elementNameChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+
+
+
+                //var index = TechneModel.IndexOf(SelectedVisual);
+                //TechneModel.Remove(SelectedVisual);
+                //TechneModel.Insert(index, SelectedVisual);
+            }
+        }
+
+        public Double RotationX
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+                return SelectedVisual.RotationX;
+            }
+            set
+            {
+                //PropertyChanged(RotationX, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.RotationX)));
+
+                SelectedVisual.RotationX = value;
+                NotifyPropertyChanged(rotationXChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        public Double RotationY
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+                return SelectedVisual.RotationY;
+            }
+            set
+            {
+                //PropertyChanged(RotationY, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.RotationY)));
+
+                SelectedVisual.RotationY = value;
+                NotifyPropertyChanged(rotationYChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        public Double RotationZ
+        {
+            get
+            {
+                if (SelectedVisual == null)
+                    return 0;
+                return SelectedVisual.RotationZ;
+            }
+            set
+            {
+                //PropertyChanged(RotationZ, value, typeof(MainWindowViewModel).GetProperty(ObservableHelper.GetPropertyName<MainWindowViewModel>(x => x.RotationZ)));
+
+                SelectedVisual.RotationZ = value;
+                NotifyPropertyChanged(rotationZChangeArgs);
+                NotifyPropertyChanged(selectedVisualChangeArgs);
+            }
+        }
+        #endregion
+
+        public SelectedVisualViewModel(MainWindowViewModel mainWindow)
+        {
+            this.mainWindow = mainWindow;
+        }
+
+        private void DeselectVisual()
+        {
+            var collection = SelectedVisual as TechneVisualCollection;
+
+            if (collection != null && collection.Children.Count > 0 && collection.Name == "Multiselection")
+            {
+                foreach (var item in collection.Children.ToList())
+                {
+                    if (collection.Children.Count > 0)
+                        mainWindow.RemoveVisualFromSelection(item);
+                }
+                //RemoveVisual((ITechneVisual)collection);
+            }
+
+            //if (SelectedVisual != null)
+            //    SelectedVisual = null;
+            //TextureViewerOverlay = null;
+
+            ChangeOpacity(1);
+
+            BindingOperations.ClearAllBindings(offsetSphere);
+            BindingOperations.ClearAllBindings(boxWireframe);
+
+            if (Model.Contains(offsetSphere))
+            {
+                Model.Remove(offsetSphere);
+            }
+            if (Model.Contains(boxWireframe))
+            {
+                Model.Remove(boxWireframe);
+            }
+        }
+
+        private void SelectVisual()
+        {
+            ShowWireframeAndAnchor();
+            ChangeOpacity(0.5);
+
+            if (SelectedVisual is TechneVisualCollection)
+            {
+                TextureViewerOverlay = null;
+            }
+
+            UpdateTextureOverlay();
+
+            if (settingsManager.TechneSettings.FocusSelectedShape)
+                FocusSelectedVisual();
+        }
+    }
+}

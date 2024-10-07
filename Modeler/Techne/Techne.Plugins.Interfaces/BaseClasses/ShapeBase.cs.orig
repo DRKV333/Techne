@@ -1,0 +1,750 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Media.Media3D;
+using System.Windows.Media.Imaging;
+using Techne.Plugins.Interfaces;
+using System.Windows.Media;
+<<<<<<< local
+using System.Xml.Serialization;
+using System.Globalization;
+using System.Xml;
+=======
+using System.ComponentModel;
+>>>>>>> other
+
+namespace Techne.Plugins.BaseClasses
+{
+    public abstract class ShapeBase : ModelVisual3D, ITechneVisual
+    {
+        #region Fields
+        private readonly object invalidateLock = "";
+        private bool update = true;
+        private bool isInvalidated = true;
+        /// <summary>
+        /// 
+        /// </summary>
+        private Vector textureOffset;
+        /// <summary>
+        /// backing field for Texture
+        /// </summary>
+        private BitmapSource texture;
+        private Double opacity = 1;
+        #endregion
+
+        #region Change Thingies
+        public static DependencyProperty textureOffsetProperty = DependencyProperty.Register("TextureOffset", typeof(Vector), typeof(ShapeBase));
+        public static DependencyProperty positionProperty = DependencyProperty.Register("Position", typeof(Vector3D), typeof(ShapeBase));
+        public static DependencyProperty offsetProperty = DependencyProperty.Register("Offset", typeof(Vector3D), typeof(ShapeBase));
+        public static DependencyProperty sizeProperty = DependencyProperty.Register("Size", typeof(Vector3D), typeof(ShapeBase));
+
+        public static DependencyProperty rotationXProperty = DependencyProperty.Register("RotationX", typeof(Double), typeof(ShapeBase));
+        public static DependencyProperty rotationYProperty = DependencyProperty.Register("RotationY", typeof(Double), typeof(ShapeBase));
+        public static DependencyProperty rotationZProperty = DependencyProperty.Register("RotationZ", typeof(Double), typeof(ShapeBase));
+
+        public static DependencyProperty isFixedProperty = DependencyProperty.Register("IsFixed", typeof(Boolean), typeof(ShapeBase));
+        public static DependencyProperty isDecorativeProperty = DependencyProperty.Register("IsDecorative", typeof(Boolean), typeof(ShapeBase));
+        public static DependencyProperty isMirroredProperty = DependencyProperty.Register("IsMirrored", typeof(Boolean), typeof(ShapeBase));
+
+        public static DependencyProperty nameProperty = DependencyProperty.Register("Name", typeof(String), typeof(ShapeBase));
+
+        //public static DependencyProperty textureSizeProperty = DependencyProperty.Register("AnimationTransform", typeof(), typeof(TechneCubeVisual3D));
+
+        public static DependencyProperty textureSizeProperty = DependencyProperty.Register("TextureSize", typeof(Vector), typeof(ShapeBase));
+        public static DependencyProperty textureCoordinatesProperty = DependencyProperty.Register("TextureCoordinates", typeof(List<Point[]>), typeof(ShapeBase));
+        #endregion
+
+        #region Dependency Properties
+        public static readonly DependencyProperty FillProperty =
+            DependencyProperty.Register("Fill", typeof(Brush), typeof(ShapeBase),
+                                        new UIPropertyMetadata(null, FillChanged));
+
+        public static readonly DependencyProperty MaterialProperty =
+            DependencyProperty.Register("Material", typeof(Material), typeof(ShapeBase),
+                                        new UIPropertyMetadata(null, MaterialChanged));
+
+        public static readonly DependencyProperty BackMaterialProperty =
+            DependencyProperty.Register("BackMaterial", typeof(Material), typeof(ShapeBase),
+                                        new UIPropertyMetadata(null, MaterialChanged));
+
+        public static readonly DependencyProperty CenterProperty =
+            DependencyProperty.Register("Center", typeof(Point3D), typeof(ShapeBase),
+                                        new UIPropertyMetadata(new Point3D(), GeometryChanged));
+
+        public static readonly DependencyProperty HeightProperty =
+            DependencyProperty.Register("Height", typeof(double), typeof(ShapeBase),
+                                        new UIPropertyMetadata(1.0, GeometryChanged));
+
+        public static readonly DependencyProperty LengthProperty =
+            DependencyProperty.Register("Length", typeof(double), typeof(ShapeBase),
+                                        new UIPropertyMetadata(1.0, GeometryChanged));
+
+        public static readonly DependencyProperty WidthProperty =
+            DependencyProperty.Register("Width", typeof(double), typeof(ShapeBase),
+                                        new UIPropertyMetadata(1.0, GeometryChanged));
+        #endregion
+
+        #region Public Properties
+        public virtual GeometryModel3D Model
+        {
+            get { return Content as GeometryModel3D; }
+        }
+
+        public Brush Fill
+        {
+            get { return (Brush)GetValue(FillProperty); }
+            set { SetValue(FillProperty, value); }
+        }
+
+        public Material Material
+        {
+            get { return (Material)GetValue(MaterialProperty); }
+            set { SetValue(MaterialProperty, value); }
+        }
+
+        public Material BackMaterial
+        {
+            get { return (Material)GetValue(BackMaterialProperty); }
+            set { SetValue(BackMaterialProperty, value); }
+        }
+
+        /// <summary>
+        /// Visual is rotatable but opacity stays the same
+        /// </summary>
+        [XmlAttribute("Decorative")]
+        public virtual Boolean IsDecorative
+        {
+            get
+            {
+                return (bool)GetValue(isDecorativeProperty);
+            }
+            set
+            {
+                if (value)
+                {
+                    Opacity = .5;
+                }
+                else
+                {
+                    Opacity = 1;
+                }
+
+                SetValue(isDecorativeProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// slightly opaque with fixed texture and fixed position
+        /// </summary>
+        [XmlAttribute("Fixed")]
+        public virtual Boolean IsFixed
+        {
+            get
+            {
+                return (bool)GetValue(isFixedProperty);
+            }
+            set
+            {
+                if (value)
+                {
+                    Opacity = .5;
+                }
+                else
+                {
+                    Opacity = 1;
+                }
+
+                SetValue(isFixedProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the texture coordinates of this visual
+        /// </summary>
+        public virtual List<Point[]> TextureCoordinates
+        {
+            get
+            {
+                return (List<Point[]>)GetValue(textureCoordinatesProperty);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(textureCoordinatesProperty, value);
+            }
+        }
+        /// <summary>
+        /// Gets or sets the offset of this visual
+        /// </summary>
+        [XmlElement("Offset", Type = typeof(Vector3D))]
+        public virtual Vector3D Offset
+        {
+            get
+            {
+                return (Vector3D)GetValue(offsetProperty);
+                //return offset;
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(offsetProperty, value);
+                CalculateCenter();
+                RotateModel();
+            }
+        }
+        /// <summary>
+        /// Gets or sets the offset of this visual
+        /// </summary>
+        [XmlElement("Poition", Type = typeof(Vector3D))]
+        public virtual Vector3D Position
+        {
+            get
+            {
+                return (Vector3D)GetValue(positionProperty);
+                //return position;
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(positionProperty, value);
+                CalculateCenter();
+                RotateModel();
+            }
+        }
+        /// <summary>
+        /// Gets or sets the offset of this visual
+        /// </summary>
+        [XmlElement("TextureOffset", Type = typeof(Vector))]
+        public virtual Vector TextureOffset
+        {
+            get
+            {
+                return (Vector)GetValue(textureOffsetProperty);
+                //return textureOffset;
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                this.textureOffset = value;
+                SetValue(textureOffsetProperty, value);
+                //todo: commented to remove texture mapping
+
+                if (Texture == null)
+                    FillShape();
+                else
+                    ReapplyTexture();
+            }
+        }
+        /// <summary>
+        /// Gets or sets the size of this visual
+        /// </summary>
+        [XmlElement("Size", Type = typeof(Vector3D))]
+        public virtual Vector3D Size
+        {
+            get
+            {
+                return (Vector3D)GetValue(sizeProperty);
+                //return new Vector3D(Width, Length, Height);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(sizeProperty, value);
+
+                if (Width != value.X)
+                    Width = value.X;
+                if (Length != value.Y)
+                    Length = value.Y;
+                if (Height != value.Z)
+                    Height = value.Z;
+
+                CalculateCenter();
+
+                if (Texture == null)
+                    FillShape();
+                else
+                    ReapplyTexture();
+            }
+        }
+        
+        [XmlElement("Rotation", Type = typeof(Vector3D))]
+        public Vector3D Rotation
+        {
+            get
+            {
+                return new Vector3D(RotationX, RotationY, RotationZ);
+            }
+            set
+            {
+                RotationX = value.X;
+                RotationY = value.Y;
+                RotationZ = value.Z;
+            }
+        }
+        
+        public virtual Double RotationX
+        {
+            get
+            {
+                return (Double)GetValue(rotationXProperty);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(rotationXProperty, value);
+                RotateModel();
+            }
+        }
+        public virtual Double RotationY
+        {
+            get
+            {
+                return (Double)GetValue(rotationYProperty);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(rotationYProperty, value);
+                RotateModel();
+            }
+        }
+        public virtual Double RotationZ
+        {
+            get
+            {
+                return (Double)GetValue(rotationZProperty);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(rotationZProperty, value);
+                RotateModel();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the texture of this visual
+        /// </summary>
+        public virtual BitmapSource Texture
+        {
+            get
+            {
+                return texture;
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                texture = value;
+
+                if (texture != null)
+                {
+                    TextureSize = new System.Windows.Vector(texture.PixelWidth, texture.PixelHeight);
+                    //TextureSize = new System.Windows.Vector(64, 32);
+                    ReapplyTexture();
+                    //CalculateCenter();
+                }
+                else
+                {
+                    TextureSize = new Vector(64, 32);
+                }
+            }
+        }
+        /// <summary>
+        /// Gets or sets the name of this visual used for saving and especially exporting
+        /// </summary>
+        [XmlElement("Name")]
+        public virtual String Name
+        {
+            get
+            {
+                return (String)GetValue(nameProperty);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(nameProperty, value);
+            }
+        }
+
+        public virtual Double Opacity
+        {
+            get
+            {
+                return opacity;
+            }
+            set
+            {
+                if (IsFixed || IsDecorative)
+                    return;
+
+                opacity = value;
+                ReapplyTexture();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the texture size of this visual
+        /// </summary>
+        public virtual Vector TextureSize
+        {
+            get
+            {
+                return (Vector)GetValue(textureSizeProperty);
+            }
+            private set
+            {
+                SetValue(textureSizeProperty, value);
+            }
+        }
+
+        //[XmlElement("MetaData")]
+        [XmlIgnore]
+        public virtual Dictionary<string, MetadataBase> Metadata { get; set; }
+
+        //[XmlAttribute("type", Type = typeof(Guid))]
+        [XmlIgnore]
+        public abstract Guid Guid
+        {
+            get;
+            set;
+        }
+
+        public virtual double Length
+        {
+            get { return (double)GetValue(LengthProperty); }
+            set
+            {
+                SetValue(LengthProperty, value);
+                Size = new Vector3D(Width, Length, Height);
+            }
+        }
+
+        public virtual double Width
+        {
+            get { return (double)GetValue(WidthProperty); }
+            set
+            {
+                SetValue(WidthProperty, value);
+                Size = new Vector3D(Width, Length, Height);
+            }
+        }
+
+        public virtual double Height
+        {
+            get { return (double)GetValue(HeightProperty); }
+            set
+            {
+                SetValue(HeightProperty, value);
+                Size = new Vector3D(Width, Length, Height);
+            }
+        }
+
+        public virtual Point3D Center
+        {
+            get { return (Point3D)GetValue(CenterProperty); }
+            set { SetValue(CenterProperty, value); }
+        }
+
+        [XmlAttribute("Mirrored")]
+        public virtual Boolean IsMirrored
+        {
+            get
+            {
+                return (Boolean)GetValue(isMirroredProperty);
+            }
+            set
+            {
+                if (IsFixed)
+                    return;
+
+                SetValue(isMirroredProperty, value);
+                ReapplyTexture();
+            }
+        }
+
+        public Double Scale
+        {
+            get
+            {
+                return 0;
+            }
+            set
+            {
+            }
+        }
+        #endregion
+
+        #region Methods
+        #region protected
+        protected static void GeometryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((ShapeBase)d).GeometryChanged();
+        }
+
+        protected static void MaterialChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((ShapeBase)d).MaterialChanged();
+        }
+
+        protected void MaterialChanged()
+        {
+            if (!update)
+                return;
+
+            if (Model == null)
+                return;
+
+            if (Material == null)
+            {
+                // use a default blue material
+                Model.Material = CreateMaterial(Brushes.Blue);
+            }
+            else
+                Model.Material = Material;
+
+            //model.Material = Material;
+
+            // the back material may be null (invisible)
+            Model.BackMaterial = BackMaterial;
+        }
+
+        protected void CompositionTarget_Rendering(object sender, EventArgs e)
+        {
+            lock (invalidateLock)
+            {
+                if (isInvalidated)
+                {
+                    isInvalidated = false;
+                    GeometryChanged();
+                    MaterialChanged();
+                }
+            }
+        }
+
+        protected void InvalidateModel()
+        {
+            lock (invalidateLock)
+            {
+                isInvalidated = true;
+            }
+        }
+        #endregion
+        #region private
+        private static void FillChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var el = (ShapeBase)d;
+            el.Material = CreateMaterial(el.Fill);
+            el.BackMaterial = el.Material;
+        }
+
+        private static Material CreateMaterial(Brush brush)
+        {
+            return CreateMaterial(brush, 100);
+        }
+
+        private static Material CreateMaterial(Brush brush, double specularPower)
+        {
+            var materialGroup = new MaterialGroup();
+            materialGroup.Children.Add(new DiffuseMaterial(brush));
+            if (specularPower > 0)
+                materialGroup.Children.Add(new SpecularMaterial(Brushes.White, specularPower));
+            return materialGroup;
+        }
+        #endregion
+        #region public
+        public void UpdateModel()
+        {
+            GeometryChanged();
+            MaterialChanged();
+        }
+        #endregion
+        #endregion
+
+        protected void GeometryChanged()
+        {
+            if (!update)
+                return;
+
+            Model.Geometry = Tessellate();
+        }
+
+        //protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        //{
+        //    if (e.Property == ShapeBase.WidthProperty || e.Property == ShapeBase.HeightProperty || e.Property == ShapeBase.LengthProperty)
+        //    {
+        //        Size = new Vector3D(Width, Length, Height);
+        //    }
+
+        //    base.OnPropertyChanged(e);
+        //}
+
+        #region Virtual Methods
+        /// <summary>
+        /// Calculates the center.
+        /// </summary>
+        protected virtual void CalculateCenter()
+        {
+            this.Center = new Point3D(Offset.X + Position.X + this.Width / 2, Offset.Y + Position.Y + this.Length / 2, Offset.Z + Position.Z + this.Height / 2);
+        }
+
+        protected virtual void RotateModel()
+        {
+            var rotation = this.Transform as RotateTransform3D;
+
+            if (rotation == null)
+                rotation = new RotateTransform3D();
+
+            rotation.CenterX = Position.X;
+            rotation.CenterY = Position.Y;
+            rotation.CenterZ = Position.Z;
+
+            rotation.Rotation = new QuaternionRotation3D(CalculateQuaternion(RotationY, RotationZ, RotationX));
+
+            this.Transform = rotation;
+        }
+
+        protected virtual Quaternion CalculateQuaternion(double heading, double attitude, double bank)
+        {
+            heading *= Math.PI / 181;
+            attitude *= Math.PI / 181;
+            bank *= Math.PI / 181;
+            // Assuming the angles are in radians.
+            double c1 = Math.Cos(heading);
+            double s1 = Math.Sin(heading);
+            double c2 = Math.Cos(attitude);
+            double s2 = Math.Sin(attitude);
+            double c3 = Math.Cos(bank);
+            double s3 = Math.Sin(bank);
+            var w = Math.Sqrt(1.0 + c1 * c2 + c1 * c3 - s1 * s2 * s3 + c2 * c3) / 2.0;
+            double w4 = (4.0 * w);
+            var x = (c2 * s3 + c1 * s3 + s1 * s2 * c3) / w4;
+            var y = (s1 * c2 + s1 * c3 + c1 * s2 * s3) / w4;
+            var z = (-s1 * s3 + c1 * s2 * c3 + s2) / w4;
+
+            return new Quaternion(x, y, z, w);
+        }
+
+        protected virtual void FillShape()
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(127, 127, 127));
+            brush.Opacity = opacity;
+
+            this.Material = new DiffuseMaterial(brush);
+        }
+        #endregion
+
+        #region Abstract Methods
+        /// <summary>
+        /// Applies the current texture to the visual
+        /// </summary>
+        public abstract void ReapplyTexture();
+        /// <summary>
+        /// Tessellates this visual.
+        /// </summary>
+        /// <returns></returns>
+        protected abstract MeshGeometry3D Tessellate();
+        #endregion
+
+        public System.Xml.Schema.XmlSchema GetSchema()
+        {
+            return null;
+        }
+
+        public void ReadXml(System.Xml.XmlReader reader)
+        {
+            //read name here as well
+        
+            reader.ReadStartElement("Scale");
+            Scale = reader.ReadContentAsDouble();
+            reader.ReadEndElement();
+
+            reader.ReadStartElement("Offset");
+            Offset = reader.ReadContentAsVector3D();
+            reader.ReadEndElement();
+
+            reader.ReadStartElement("TextureOffset");
+            TextureOffset = reader.ReadContentAsVector();
+            reader.ReadEndElement();
+
+            reader.ReadStartElement("Rotation");
+            Rotation = reader.ReadContentAsVector3D();
+            reader.ReadEndElement();
+
+            reader.ReadStartElement("Size");
+            Size = reader.ReadContentAsVector3D();
+            reader.ReadEndElement();
+
+            reader.ReadStartElement("Position");
+            Position = reader.ReadContentAsVector3D();
+            reader.ReadEndElement();
+
+            reader.ReadStartElement("IsMirrored");
+            IsMirrored = Boolean.Parse(reader.ReadContentAsString());
+            reader.ReadEndElement();
+            
+            reader.ReadStartElement("IsDecorative");
+            IsDecorative = Boolean.Parse(reader.ReadContentAsString());
+            reader.ReadEndElement();
+        }
+
+        public void WriteXml(System.Xml.XmlWriter writer)
+        {
+            writer.WriteAttributeString("type", Guid.ToString());
+            writer.WriteAttributeString("name", Name);
+
+            writer.WriteStartElement("Scale");
+            writer.WriteString(Scale.ToString(CultureInfo.InvariantCulture));
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Offset");
+            writer.WriteString(Offset.ToString(CultureInfo.InvariantCulture));
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("TextureOffset");
+            writer.WriteString(TextureOffset.ToString(CultureInfo.InvariantCulture));
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Rotation");
+            writer.WriteString(Rotation.ToString(CultureInfo.InvariantCulture));
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Size");
+            writer.WriteString(Size.ToString(CultureInfo.InvariantCulture));
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Position");
+            writer.WriteString(Position.ToString(CultureInfo.InvariantCulture));
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("IsMirrored");
+            writer.WriteString(IsMirrored.ToString());
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("IsDecorative");
+            writer.WriteString(IsDecorative.ToString());
+            writer.WriteEndElement();
+        }
+    }
+}

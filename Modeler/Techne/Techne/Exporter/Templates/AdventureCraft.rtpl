@@ -1,0 +1,47 @@
+﻿<Templates>
+  <Info>
+    <Filter>Java-Script|*.js</Filter>
+    <DefaultExtension>js</DefaultExtension>
+  </Info>
+	<Template>
+		<Content>
+<![CDATA[
+@functions
+{
+  string ToString(object o)
+  {
+    return o.ToString().Replace(',', '.').Replace(' ', '_');
+  }
+}
+// Date: @(DateTime.Now.ToString())
+// Adventurecraft javascript exported from Techne
+// If you find any problems with this template feel free to edit it
+// but I'd appreciate it if you'd tell me about it so everyone can benefit :)
+// - ZeuX
+@using Techne.Plugins.Interfaces;
+@using Techne.Model;
+@helper CreateContent(ITechneVisual visual)
+{
+  if (visual is ITechneVisualCollection)
+  {
+    foreach (ITechneVisual child in ((ITechneVisualCollection)visual).Children)
+    {
+        @CreateContent(child)
+    }
+  }
+  else
+  {
+@:var @visual.Name = new Model();
+@:@(visual.Name).addBox("@(visual.Name)", @ToString(visual.Offset.X), @(ToString((visual.Offset.Y - 20) * - 1)), @ToString(visual.Offset.Z), @visual.Width, @visual.Length, @visual.Height, @visual.TextureOffset.X, @visual.TextureOffset.Y);
+@:@(visual.Name).setPosition(@(visual.Position.X / 16), @(visual.Position.Y / 16 * -1), @(visual.Position.Z / 16));
+@:@(visual.Name).setRotation(@ToString(visual.RotationY), @ToString(visual.RotationZ), @ToString(visual.RotationX));
+  }
+}
+@foreach (ITechneVisual visual in @Model.Geometry)
+{
+  @CreateContent(visual)
+}
+]]>
+    </Content>
+	</Template>
+</Templates>

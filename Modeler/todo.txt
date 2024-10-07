@@ -1,0 +1,32 @@
+Treeview doesn't update when you add new stuff to the group
+Convert sample models
+
+Property Grid
+Better TreeView
+	* Toggle-Visible Layer
+	* Add collections
+	* Drag & Drop
+	* Add Model
+Layered texturemap
+Auto-texturemap
+
+Selection:
+	1) get stuff out of there, it's not working beacuse it checks against the parent
+	2) Select top collection on click
+	3) when adding collection to a selected collection, don't add one to the other, make it a collection of both collections instead
+
+Look into loading a model from start, and reloading something
+Think about making texture-viewer background white
+special-thanks section
+
+
+fix deletion of multiblocks
+
+it saves selections :(
+
+
+multimonitor position isn't saved
+change texture-viewer background to white only where texture is
+ 12:59:56   CJB             • are you also planning to add brightness?
+ 13:00:04  @ZeuX            • as in?
+ 13:00:17   CJB             • so see how the model looks in the dark :P
