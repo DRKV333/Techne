@@ -3,7 +3,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:dd="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
     xmlns:local="clr-namespace:DefaultsExample"
-    xmlns:tk="http://schemas.microsoft.com/wpf/2008/toolkit"
     Title="Gong Solutions Drag'n'Drop: Defaults Example" Height="520" Width="620">
     
     <Window.Resources>
@@ -183,23 +182,23 @@
                     Demonstrates the default behaviour with DataGrids.
                 </TextBlock>
 
-                <tk:DataGrid Grid.Row="1" Grid.Column="0" AutoGenerateColumns="False" 
+                <DataGrid Grid.Row="1" Grid.Column="0" AutoGenerateColumns="False" 
                              ItemsSource="{Binding Collection1}" GridLinesVisibility="None"
                              dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True"
                              dd:DragDrop.DragAdornerTemplate="{StaticResource DragAdorner}">
-                    <tk:DataGrid.Columns>
-                        <tk:DataGridTextColumn Binding="{Binding Mode=OneWay}" Header="Value"/>
-                    </tk:DataGrid.Columns>
-                </tk:DataGrid>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Mode=OneWay}" Header="Value"/>
+                    </DataGrid.Columns>
+                </DataGrid>
             
-                <tk:DataGrid Grid.Row="1" Grid.Column="1" AutoGenerateColumns="False" 
+                <DataGrid Grid.Row="1" Grid.Column="1" AutoGenerateColumns="False" 
                              ItemsSource="{Binding Collection2}" GridLinesVisibility="None"
                              dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True"
                              dd:DragDrop.DragAdornerTemplate="{StaticResource DragAdorner}">
-                    <tk:DataGrid.Columns>
-                        <tk:DataGridTextColumn Binding="{Binding Mode=OneWay}" Header="Value"/>
-                    </tk:DataGrid.Columns>
-                </tk:DataGrid>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Mode=OneWay}" Header="Value"/>
+                    </DataGrid.Columns>
+                </DataGrid>
             </Grid>
         </TabItem>
         

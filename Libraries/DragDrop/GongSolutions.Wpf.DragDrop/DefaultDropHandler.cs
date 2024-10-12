@@ -125,7 +125,7 @@ namespace GongSolutions.Wpf.DragDrop
             return false;
         }
 
-        protected static bool TestCompatibleTypes(IEnumerable target, object data)
+        protected internal static bool TestCompatibleTypes(IEnumerable target, object data)
         {
             TypeFilter filter = (t, o) => (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 
