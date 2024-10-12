@@ -1,0 +1,16 @@
+<Project>
+    <PropertyGroup>
+        <CoreCompileDependsOn>CoreResGen;$(BuildDependsOn)</CoreCompileDependsOn>
+    </PropertyGroup>
+    <ItemGroup>
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>MSBuild:Compile</Generator>
+            <Type>Resx</Type>
+            <StronglyTypedFileName>$(IntermediateOutputPath)Resources.Designer.cs</StronglyTypedFileName>
+            <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+            <StronglyTypedNamespace>$(AssemblyName).Properties</StronglyTypedNamespace>
+            <StronglyTypedClassName>Resources</StronglyTypedClassName>
+            <PublicClass>true</PublicClass>
+        </EmbeddedResource>
+    </ItemGroup>
+</Project>

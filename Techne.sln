@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{B0E128C1-95F7-4319-B181-F2FE44BECDC5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AvalonDock", "AvalonDock", "{FCBB4ECF-FAB2-4E99-8829-9D9E51C646FF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvalonDock", "Libraries\AvalonDock\AvalonDock\AvalonDock.csproj", "{B36BA3CA-8685-4FA1-9C8B-60FBA7584187}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvalonDock.Themes", "Libraries\AvalonDock\AvalonDock.Themes\AvalonDock.Themes.csproj", "{39E89BD4-439A-477C-BD69-B2200F434D3D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvalonDock.DemoApp", "Libraries\AvalonDock\AvalonDock.DemoApp\AvalonDock.DemoApp.csproj", "{53B9EC94-0D5F-496D-B27E-275CF1EB2DD9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B36BA3CA-8685-4FA1-9C8B-60FBA7584187}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B36BA3CA-8685-4FA1-9C8B-60FBA7584187}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B36BA3CA-8685-4FA1-9C8B-60FBA7584187}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B36BA3CA-8685-4FA1-9C8B-60FBA7584187}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39E89BD4-439A-477C-BD69-B2200F434D3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39E89BD4-439A-477C-BD69-B2200F434D3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39E89BD4-439A-477C-BD69-B2200F434D3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39E89BD4-439A-477C-BD69-B2200F434D3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53B9EC94-0D5F-496D-B27E-275CF1EB2DD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53B9EC94-0D5F-496D-B27E-275CF1EB2DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53B9EC94-0D5F-496D-B27E-275CF1EB2DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53B9EC94-0D5F-496D-B27E-275CF1EB2DD9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FCBB4ECF-FAB2-4E99-8829-9D9E51C646FF} = {B0E128C1-95F7-4319-B181-F2FE44BECDC5}
+		{B36BA3CA-8685-4FA1-9C8B-60FBA7584187} = {FCBB4ECF-FAB2-4E99-8829-9D9E51C646FF}
+		{39E89BD4-439A-477C-BD69-B2200F434D3D} = {FCBB4ECF-FAB2-4E99-8829-9D9E51C646FF}
+		{53B9EC94-0D5F-496D-B27E-275CF1EB2DD9} = {FCBB4ECF-FAB2-4E99-8829-9D9E51C646FF}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {875B7C33-B038-4138-B07D-A98311158717}
+	EndGlobalSection
+EndGlobal
