@@ -13,14 +13,20 @@ namespace MEFedMVVM.ViewModelLocator
     /// <summary>
     /// This is the ViewModel initializer that ViewModel after it is set as datacontext
     /// </summary>
-    public class DataContextAwareViewModelInitializer : BasicViewModelInializer
+    public class DataContextAwareViewModelInitializer : BasicViewModelInitializer
     {
         public DataContextAwareViewModelInitializer(MEFedMVVMResolver resolver)
             : base (resolver )
         { }
 
-        public override void CreateViewModel(Export viewModelContext, 
-            FrameworkElement containerElement)
+		public override void CreateViewModel(Export viewModelContext,
+			FrameworkElement containerElement)
+		{
+			CreateViewModel(viewModelContext, containerElement, false);
+		}
+
+    	public void CreateViewModel(Export viewModelContext, 
+            FrameworkElement containerElement, bool shouldReSatisfyImports)
         {
             if (!Designer.IsInDesignMode) // if at runtime
             {
@@ -28,12 +34,11 @@ namespace MEFedMVVM.ViewModelLocator
                 RoutedEventHandler handler = null;
                 handler = delegate
                 {
-                    var newContext = containerElement.DataContext as IServiceConsumer;
-                    if (newContext != null) // it means we have the VM instance now we should inject the services
+                    if (containerElement.DataContext != null) // it means we have the VM instance now we should inject the services
                     {
-                        TryInjectingServicesToVM(viewModelContext, newContext, containerElement);
+                        resolver.SatisfyImports(containerElement.DataContext, containerElement);
                     }
-                    containerElement.Loaded -= handler;
+					containerElement.Loaded -= handler;
                 };
                 if (containerElement.DataContext == null)
                     containerElement.Loaded += handler;
@@ -45,12 +50,20 @@ namespace MEFedMVVM.ViewModelLocator
                 DependencyPropertyChangedEventHandler handler = null;
                 handler = delegate
                 {
-                    var newContext = containerElement.DataContext as IServiceConsumer;
-                    if (newContext != null) // it means we have the VM instance now we should inject the services
+                    if (containerElement.DataContext != null) // it means we have the VM instance now we should inject the services
                     {
-                        TryInjectingServicesToVM(viewModelContext, newContext, containerElement);
+						var data = containerElement.DataContext.GetType().GetCustomAttributes(typeof(ExportViewModel), true).FirstOrDefault();
+
+						if (data == null || ((ExportViewModel)data).Name != (string) viewModelContext.Metadata[ExportViewModel.NameProperty])
+							return;
+
+						if (!shouldReSatisfyImports)
+						{
+							containerElement.DataContextChanged -= handler;
+						}
+
+                    	resolver.SatisfyImports(containerElement.DataContext, containerElement);
                     }
-                    containerElement.DataContextChanged -= handler;
                 };
 
                 if (containerElement.DataContext == null)
@@ -62,7 +75,8 @@ namespace MEFedMVVM.ViewModelLocator
 #endif
             }
 
-            else // at design time
+
+            if(Designer.IsInDesignMode)
             {
                 base.CreateViewModel(viewModelContext, containerElement ); // this will create the VM and set it as DataContext
             }

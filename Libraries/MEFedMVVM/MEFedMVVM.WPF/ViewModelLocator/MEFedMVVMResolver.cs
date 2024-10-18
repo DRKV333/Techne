@@ -13,66 +13,98 @@ namespace MEFedMVVM.ViewModelLocator
     /// </summary>
     public class MEFedMVVMResolver
     {
-        CompositionContainer _container;
+        private CompositionContainer _container;
         public MEFedMVVMResolver(CompositionContainer container)
         {
             this._container = container;
+        }
+
+        public CompositionContainer Container
+        {
+            get
+            {
+                return _container;
+            }
+        }
+
+        public void SatisfyImports(object attributedPart, object contextToInject)
+        {
+            SetContextToExportProvider(contextToInject);
+            Container.SatisfyImportsOnce(attributedPart);
+            SetContextToExportProvider(null);
         }
 
         /// <summary>
         /// Gets teh ViewModel export 
         /// </summary>
         /// <param name="vmContractName">The contract for the view model to get</param>
-        /// <returns></returns>
-        public Export GetViewModelByContract(string vmContractName)
+        /// <param name="contextToInject">The context in which the View Model will be attached</param>
+        /// <param name="policy">The policy that you want for the creation of this ViewModel</param>
+        /// <returns>Returns the Export for this ViewModel</returns>
+        public Export GetViewModelByContract(string vmContractName, object contextToInject, CreationPolicy policy)
         {
-            if (_container == null)
-            {
-                // try getting the container again
-                _container = LocatorBootstrapper.EnsureLocatorBootstrapper();
-            }
+            if(Container == null)
+                return null;
 
             var viewModelTypeIdentity = AttributedModelServices.GetTypeIdentity(typeof(object));
             var requiredMetadata = new Dictionary<string, Type>();
             requiredMetadata[ExportViewModel.NameProperty] = typeof(string);
-            requiredMetadata[ExportViewModel.ContextAwareServicesProperty] = typeof(IEnumerable<Type>);
-            requiredMetadata[ExportViewModel.IsDataContextAwareProperty] = typeof(bool);
+            requiredMetadata[ExportViewModel.IsViewModelFirstProperty] = typeof(bool);
 
 
-            var definition = new ContractBasedImportDefinition(ExportViewModel.Contract, viewModelTypeIdentity,
-                                                               requiredMetadata, ImportCardinality.ZeroOrMore, false,
-                                                               false, CreationPolicy.NonShared);
+            var definition = new ContractBasedImportDefinition(vmContractName, viewModelTypeIdentity,
+                                                               requiredMetadata, ImportCardinality.ExactlyOne, false,
+                                                               false, policy);
 
-            var vmExports = _container.GetExports(definition);
-            var vmExport = vmExports.Single(e => e.Metadata[ExportViewModel.NameProperty].Equals(vmContractName));
+            SetContextToExportProvider(contextToInject);
+            var vmExports = Container.GetExports(definition);
+            SetContextToExportProvider(null);
+
+            var vmExport = vmExports.FirstOrDefault();
             if (vmExport != null)
                 return vmExport;
             return null;
         }
 
+		public Export GetValueByContract(string contractName, CreationPolicy policy)
+    	{
+			if (Container == null)
+				return null;
 
-        public Export GetServiceByContract(Type serviceType)
+			var viewModelTypeIdentity = AttributedModelServices.GetTypeIdentity(typeof(object));
+			
+
+			var definition = new ContractBasedImportDefinition(contractName, viewModelTypeIdentity,
+															   null, ImportCardinality.ExactlyOne, false,
+															   false, policy);
+
+			var vmExports = Container.GetExports(definition);
+
+			var vmExport = vmExports.FirstOrDefault();
+			if (vmExport != null)
+				return vmExport;
+			return null;
+    	}
+
+        public object GetExportedValue(Export export)
         {
-            if (_container == null)
-            {
-                // try getting the container again
-                _container = LocatorBootstrapper.EnsureLocatorBootstrapper();
-            }
-
-            var serviceTypeIdentity = AttributedModelServices.GetTypeIdentity(serviceType);
-            var requiredMetadata = new Dictionary<string, Type>();
-            requiredMetadata[ExportService.IsDesignTimeServiceProperty] = typeof(ServiceType);
-            requiredMetadata[ExportService.ServiceContractProperty] = typeof(Type);
-
-
-            var definition = new ContractBasedImportDefinition(serviceTypeIdentity, serviceTypeIdentity,
-                                                               requiredMetadata, ImportCardinality.ZeroOrMore, false,
-                                                               false, CreationPolicy.NonShared);
-
-            var vmExport = _container.GetExports(definition).FirstOrDefault();
-            if (vmExport != null)
-                return vmExport;
-            return null;
+        	return export.Value;
         }
+
+        internal void SetContextToExportProvider(object contextToInject)
+        {
+            if (Container.Providers != null && Container.Providers.Count >= 1)
+            {
+                //try to find the MEFedMVVMExportProvider
+                foreach (var item in Container.Providers)
+                {
+                    var mefedProvider = item as IMEFedMVVMExportProvider;
+                    if (mefedProvider != null)
+                        mefedProvider.SetContextToInject(contextToInject);
+                }
+            }
+        }
+
+    	
     }
 }

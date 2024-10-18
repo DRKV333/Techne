@@ -11,7 +11,7 @@ using System.ComponentModel.Composition;
 
 namespace MEFedMVVMDemo.ViewModels
 {
-    [ExportViewModel("VM1")]
+    [ExportViewModel("VM1_Test")]
     public class TestViewModel : NotifyPropertyChangedBase
     {
         private readonly ObservableCollection<User> _users = new ObservableCollection<User>();

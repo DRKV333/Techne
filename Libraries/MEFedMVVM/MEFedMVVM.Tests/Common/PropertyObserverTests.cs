@@ -1,14 +1,14 @@
 ﻿using System.ComponentModel;
 using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MEFedMVVM.Common;
+using NUnit.Framework;
 
 namespace MEFedMVVMTests.Common
 {
-    [TestClass]
+    [TestFixture]
     public class PropertyObserverTests
     {
-        [TestMethod]
+        [TestCase]
         public void Test_DoOnce()
         {
             //ARRANGE
@@ -23,10 +23,10 @@ namespace MEFedMVVMTests.Common
             notifyPropertyChangedMock.TestProperty = "asdasd";
 
             //ASSERT
-            Assert.AreEqual(calledOnce, called.ToString(), "Property changed was not called with DoOnce");
+            Assert.That(called.ToString(), Is.EqualTo(calledOnce), "Property changed was not called with DoOnce");
         }
 
-        [TestMethod]
+        [TestCase]
         public void Test_Do()
         {
             //ARRANGE
@@ -41,10 +41,10 @@ namespace MEFedMVVMTests.Common
             notifyPropertyChangedMock.TestProperty = "asdase";
 
             //ASSERT
-            Assert.AreEqual(calledOnce + calledOnce, called.ToString(), "Property changed was not called with DoOnce");
+            Assert.That(called.ToString(), Is.EqualTo(calledOnce + calledOnce), "Property changed was not called with DoOnce");
         }
 
-        [TestMethod]
+        [TestCase]
         public void Test_Do_With_Unsubscribe()
         {
             //ARRANGE
@@ -60,7 +60,7 @@ namespace MEFedMVVMTests.Common
             notifyPropertyChangedMock.TestProperty = "asdasd";
 
             //ASSERT
-            Assert.AreEqual(calledOnce, called.ToString(), "Property changed was not called with DoOnce");
+            Assert.That(called.ToString(), Is.EqualTo(calledOnce), "Property changed was not called with DoOnce");
         }
     }
 
