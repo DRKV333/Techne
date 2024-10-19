@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Interactivity;
 using System.Windows.Data;
 using System.Windows.Threading;
 using System.Windows.Input;
+using Microsoft.Xaml.Behaviors;
 
 namespace Cinch
 {

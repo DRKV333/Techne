@@ -1,6 +1,6 @@
-﻿using System.Windows.Interactivity;
+﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors.Core;
 using System.Windows;
-using Microsoft.Expression.Interactivity.Core;
 
 
 namespace Cinch

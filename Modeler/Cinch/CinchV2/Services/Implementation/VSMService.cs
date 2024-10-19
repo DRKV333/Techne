@@ -3,8 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Diagnostics;
 using System.ComponentModel.Composition;
-using System.Windows.Interactivity;
-using Microsoft.Expression.Interactivity.Core;
+using Microsoft.Xaml.Behaviors.Core;
 
 namespace Cinch
 {

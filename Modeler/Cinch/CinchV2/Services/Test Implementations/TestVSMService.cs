@@ -1,11 +1,4 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Diagnostics;
-using System.ComponentModel.Composition;
-using System.Windows.Interactivity;
-
-namespace Cinch
+﻿namespace Cinch
 {
     /// <summary>
     /// A test IVisualStateManager based service that can be used in a Unit

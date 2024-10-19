@@ -1,25 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Windows.Interactivity;
-using Microsoft.Expression.Interactivity.Core;
+﻿using Microsoft.Xaml.Behaviors.Core;
+using System;
 
 namespace Cinch
 {
-	/// <summary>
-	/// A simple GoToStateAction based Action
+    /// <summary>
+    /// A simple GoToStateAction based Action
     /// that can simply be used with a CompletedAwareCommandTrigger
     /// and can be used without any setup. This Action is called
     /// with the correct StateName by the CompletedAwareCommandTrigger.
-	/// </summary>
+    /// </summary>
     /// <remarks>
     /// Recommended usage:
     /// <code>
@@ -67,7 +56,7 @@ namespace Cinch
     ///     GoToStateCommand.Execute("BlueState");
     /// </code>
     /// </remarks>
-	public class CommandDrivenGoToStateAction : GoToStateAction
+    public class CommandDrivenGoToStateAction : GoToStateAction
     {
         #region Ctor
         public CommandDrivenGoToStateAction()

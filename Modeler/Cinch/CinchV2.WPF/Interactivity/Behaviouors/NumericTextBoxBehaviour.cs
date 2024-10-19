@@ -1,11 +1,8 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Interactivity;
-using System.Windows.Data;
-using System.Windows.Threading;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
+using Microsoft.Xaml.Behaviors;
 
 namespace Cinch
 {
@@ -29,7 +26,7 @@ namespace Cinch
     ///         </TextBox>
     /// </code>
     /// </remarks>
-  public class NumericTextBoxBehaviour : Behavior<TextBox>
+    public class NumericTextBoxBehaviour : Behavior<TextBox>
   {
       #region Overrides
       protected override void OnAttached()
