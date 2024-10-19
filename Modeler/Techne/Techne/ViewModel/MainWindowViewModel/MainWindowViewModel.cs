@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.Deployment.Application;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -17,7 +16,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Interactivity;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
@@ -25,7 +23,8 @@ using Cinch;
 using HelixToolkit;
 using MEFedMVVM.Common;
 using MEFedMVVM.ViewModelLocator;
-using Techne.Exporter.Razor;
+using Microsoft.Xaml.Behaviors;
+using Techne.Compat;
 using Techne.Importer;
 using Techne.Manager;
 using Techne.Model;
@@ -37,7 +36,7 @@ using Techne.Plugins.Interfaces;
 using Techne.Plugins.Shapes;
 using Techne.Plugins.ValueConverter;
 using Techne.ViewModel;
-using EventTrigger = System.Windows.Interactivity.EventTrigger;
+using EventTrigger = Microsoft.Xaml.Behaviors.EventTrigger;
 
 namespace Techne
 {
@@ -103,6 +102,8 @@ namespace Techne
                                           Header = "Turbo Model Thingy"
                                       });
 
+            // TODO: Move this to a plugin somehow.
+            /*
             string templatePath = "./Exporter/Templates/";
             if (IsDeployed)
             {
@@ -121,7 +122,7 @@ namespace Techne
                                                                                           ExecuteExportCommand(new RazorExporter(tmp))),
                                               Header = Path.GetFileNameWithoutExtension(file)
                                           });
-            }
+            }*/
         }
 
         private void RegisterImporters()
@@ -154,7 +155,7 @@ namespace Techne
             //IsDeployed = true;
             try
             {
-                if (ApplicationDeployment.IsNetworkDeployed || ApplicationDeployment.CurrentDeployment.CurrentVersion != null)
+                if (ApplicationDeployment.CurrentDeployment.IsNetworkDeployed || ApplicationDeployment.CurrentDeployment.CurrentVersion != null)
                 {
                     IsDeployed = true;
                 }
@@ -810,13 +811,11 @@ namespace Techne
             if (watcher != null)
                 watcher.EnableRaisingEvents = false;
 
-            FileManager manager = new FileManager();
-
             try
             {
-                techneModel = manager.Load(filename, ExtensionManager.ShapePlugins);
+                techneModel = FileManager.Load(filename, ExtensionManager.ShapePlugins);
             }
-            catch (Ionic.Zip.BadReadException e)
+            catch (InvalidDataException)
             {
                 MessageBox.Show("Oho, looks like you tried to load a file that isn't a zip.\r\nIf you are in fact loading a tcn-file, please contact ZeuX\r\nUse the \"Send Feedback\"-dialogue or the forum-thread");
                 return;

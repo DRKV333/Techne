@@ -20,9 +20,7 @@ namespace Techne.Importer
         #region IImportPlugin Members
         public IEnumerable<ITechneVisual> Import(Dictionary<string, IShapePlugin> shapes, string filename)
         {
-            FileManager manager = new FileManager();
-
-            var save = manager.Load(filename, shapes);
+            var save = FileManager.Load(filename, shapes);
 
             if (save == null || save.Models == null || save.Models.Count == 0)
                 return new List<ITechneVisual>();

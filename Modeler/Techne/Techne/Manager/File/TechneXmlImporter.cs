@@ -19,7 +19,7 @@ namespace Techne.Manager
 {
     internal class TechneXmlImporter
     {
-        internal TechneModel Deserialize(Dictionary<string, IShapePlugin> shapes, MemoryStream definitionStream)
+        internal TechneModel Deserialize(Dictionary<string, IShapePlugin> shapes, Stream definitionStream)
         {
             StreamReader streamReader = new StreamReader(definitionStream);
             streamReader.BaseStream.Seek(0, SeekOrigin.Begin);

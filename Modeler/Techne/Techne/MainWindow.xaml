@@ -16,7 +16,7 @@ All other rights reserved.
         xmlns:AvalonDock="clr-namespace:AvalonDock;assembly=AvalonDock"
         xmlns:helix="clr-namespace:HelixToolkit;assembly=HelixToolkit"
         xmlns:toolkit="clr-namespace:Microsoft.Windows.Controls;assembly=WPFToolkit.Extended"
-        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:i="clr-namespace:Microsoft.Xaml.Behaviors;assembly=Microsoft.Xaml.Behaviors"
         xmlns:converter="clr-namespace:Techne.ValueConverters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="Techne.MainWindow"
         Title="Techne" Height="768" Width="1024"

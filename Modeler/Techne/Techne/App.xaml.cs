@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Cinch;
+using Techne.Compat;
 
 namespace Techne
 {
@@ -110,11 +111,15 @@ namespace Techne
 
             string s = elem.ToString();
 
+            // TODO: Also move this to plugin maybe?
+            /*
             if (e is RazorEngine.Templating.TemplateCompilationException)
                 s += "\r\n======= Errors ========\r\n" +
                      string.Join("\r\n",
                                  ((RazorEngine.Templating.TemplateCompilationException) e).Errors.Select(
                                      c => c.ToString()));
+            */
+
             if (!String.IsNullOrEmpty(comment))
                 s += "\r\n" + comment;
 
@@ -160,12 +165,11 @@ namespace Techne
             // startup file name.
             try
             {
-                if (AppDomain.CurrentDomain.SetupInformation.ActivationArguments.ActivationData != null
-                    && AppDomain.CurrentDomain.SetupInformation.ActivationArguments.ActivationData.Length > 0)
+                if (ActivationArgumentReader.Current.StartupFileName != null)
                 {
                     try
                     {
-                        string fname = AppDomain.CurrentDomain.SetupInformation.ActivationArguments.ActivationData[0];
+                        string fname = ActivationArgumentReader.Current.StartupFileName;
 
                         // It comes in as a URI; this helps to convert it to a path.
                         Uri uri = new Uri(fname);

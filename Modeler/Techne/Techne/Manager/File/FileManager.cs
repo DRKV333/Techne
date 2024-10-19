@@ -7,88 +7,87 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Windows.Media.Imaging;
-using Ionic.Zip;
 using Techne.Manager;
 using Techne.Models;
 using Techne.Plugins.Interfaces;
 
 namespace Techne
 {
-    internal class FileManager
+    internal static class FileManager
     {
         internal static void Save(string filename, TechneModel techneModels)
         {
-            BitmapImage image = new BitmapImage();
-            StringBuilder sb = new StringBuilder();
-
-            tcnReader reader = new tcnReader();
+            tcnReader reader = new();
             var element = reader.Serialize(techneModels);
 
-            using (ZipFile zip = new ZipFile(filename))
+            using ZipArchive zip = new(File.Create(filename), ZipArchiveMode.Create);
+
+            ZipArchiveEntry modelEntry = zip.CreateEntry("model.xml");
+            using (StreamWriter writer = new(modelEntry.Open()))
             {
-                zip.AddEntry("model.xml", element.ToString());
+                writer.Write(element.ToString());
+            }
 
-                foreach (var item in techneModels.Models)
+            foreach (var item in techneModels.Models)
+            {
+                if (item.TextureStream != null)
                 {
-                    if (item.TextureStream != null)
-                    {
-                        item.TextureStream.Seek(0, SeekOrigin.Begin);
-                        zip.AddEntry(item.TexturePath, item.TextureStream);
-                    }
-                }
+                    ZipArchiveEntry textureEntry = zip.CreateEntry(item.TexturePath);
+                    using Stream textureEntrySteam = textureEntry.Open();
 
-                zip.Save();
+                    item.TextureStream.Seek(0, SeekOrigin.Begin);
+                    item.TextureStream.CopyTo(textureEntrySteam);
+                }
             }
         }
 
-        internal TechneModel Load(string filename, Dictionary<string, IShapePlugin> shapes)
+        internal static TechneModel Load(string filename, Dictionary<string, IShapePlugin> shapes)
         {
-            using (ZipFile zip = ZipFile.Read(filename))
+            using ZipArchive zip = new(File.OpenRead(filename), ZipArchiveMode.Read);
+            
+            var modelFiles = zip.Entries.Where(z => z.Name.EndsWith(".xml")).ToList();
+
+            if (modelFiles.Count == 0)
             {
-                var modelFiles = zip.Entries.Where(z => z.FileName.EndsWith(".xml"));
+                return null;
+            }
 
-                if (!modelFiles.Any())
+            TechneXmlImporter deserializer = new();
+
+            foreach (var item in modelFiles)
+            {
+                using Stream definitionStream = item.Open();
+                var techneModels = deserializer.Deserialize(shapes, definitionStream);
+
+                foreach (var model in techneModels.Models)
                 {
-                    return null;
-                }
+                    var texture = zip.Entries.Where(e => e.Name.Equals(model.TexturePath ?? "texture.png", StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 
-                TechneXmlImporter deserializer = new TechneXmlImporter();
-
-                foreach (var item in modelFiles)
-                {
-                    using (MemoryStream definitionStream = new MemoryStream())
+                    if (texture != null)
                     {
-                        item.Extract(definitionStream);
-
-                        var techneModels = deserializer.Deserialize(shapes, definitionStream);
-
-                        foreach (var model in techneModels.Models)
+                        MemoryStream textureStream = new();
+                        using (Stream entryStream = texture.Open())
                         {
-                            var texture = zip.Entries.Where(e => e.FileName.Equals(model.TexturePath ?? "texture.png", StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-
-                            if (texture != null)
-                            {
-                                MemoryStream textureStream = new MemoryStream();
-                                texture.Extract(textureStream);
-
-                                var textureImage = new BitmapImage();
-                                textureImage.BeginInit();
-                                textureImage.CacheOption = BitmapCacheOption.OnLoad;
-                                textureImage.StreamSource = textureStream;
-                                textureImage.EndInit();
-
-                                model.Texture = textureImage;
-
-                                model.TextureStream = textureStream;
-                            }
+                            entryStream.CopyTo(textureStream);
                         }
 
-                        return techneModels;
+                        var textureImage = new BitmapImage();
+                        textureImage.BeginInit();
+                        textureImage.CacheOption = BitmapCacheOption.OnDemand;
+                        textureImage.StreamSource = textureStream;
+                        textureImage.EndInit();
+
+                        model.Texture = textureImage;
+
+                        model.TextureStream = textureStream;
                     }
                 }
+
+                return techneModels;
             }
 
             return null;
