@@ -758,16 +758,16 @@ namespace Techne
             {
                 case ProjectType.Minecraft:
                     {
-                        AddShapeToolBarItem(myAssembly, "D9E621F7-957F-4B77-B1AE-20DCD0DA7751", "Techne.Resources.Cube.png", "Cube");
+                        AddShapeToolBarItem(myAssembly, "D9E621F7-957F-4B77-B1AE-20DCD0DA7751", "Resources/Cube.png", "Cube");
                     }
                     break;
                 case ProjectType.TurboModelThingy:
                     {
-                        AddShapeToolBarItem(myAssembly, "D9E621F7-957F-4B77-B1AE-20DCD0DA7751", "Techne.Resources.Cube.png", "Cube");
-                        AddShapeToolBarItem(myAssembly, "DE81AA14-BD60-4228-8D8D-5238BCD3CAAA", "Techne.Resources.AddCube.png", "TMT-Cube");
-                        AddShapeToolBarItem(myAssembly, "E1957603-6C07-4A1E-9047-BB1F45E57CEA", "Techne.Resources.AddSphere.png", "Sphere");
-                        AddShapeToolBarItem(myAssembly, "0900DE04-664F-4789-8562-07FFE1043E90", "Techne.Resources.AddCone.png", "Cone");
-                        AddShapeToolBarItem(myAssembly, "B94B0064-E61C-4517-8F99-ADB273F1B33E", "Techne.Resources.AddCylinder.png", "Cylinder");
+                        AddShapeToolBarItem(myAssembly, "D9E621F7-957F-4B77-B1AE-20DCD0DA7751", "Resources/Cube.png", "Cube");
+                        AddShapeToolBarItem(myAssembly, "DE81AA14-BD60-4228-8D8D-5238BCD3CAAA", "Resources/AddCube.png", "TMT-Cube");
+                        AddShapeToolBarItem(myAssembly, "E1957603-6C07-4A1E-9047-BB1F45E57CEA", "Resources/AddSphere.png", "Sphere");
+                        AddShapeToolBarItem(myAssembly, "0900DE04-664F-4789-8562-07FFE1043E90", "Resources/AddCone.png", "Cone");
+                        AddShapeToolBarItem(myAssembly, "B94B0064-E61C-4517-8F99-ADB273F1B33E", "Resources/AddCylinder.png", "Cylinder");
                     }
                     break;
                 default:
@@ -780,7 +780,7 @@ namespace Techne
             var command = new SimpleCommand<object, Object>(x => AddShape(guid));
             ShapeToolItemViewModel menuItem;
             var bitmap = new BitmapImage();
-            using (Stream stream = myAssembly.GetManifestResourceStream(resource))
+            using (Stream stream = Application.GetResourceStream(new Uri(resource, UriKind.Relative)).Stream)
             {
                 bitmap.BeginInit();
                 bitmap.StreamSource = stream;
